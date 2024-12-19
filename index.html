@@ -1416,12 +1416,54 @@
     }
 
     //颜色差别公式，简化版，参考https://stackoverflow.com/a/9085524
+    // 使用了LAB色彩空间计算色差以接近人眼感知，加入了CIEDE2000色差公式
     function colorDistance(r1, g1, b1, r2, g2, b2) {
-        let rmean = (r1 + r2) / 2,
-            rd = r1 - r2,
-            gd = g1 - g2,
-            bd = b1 - b2;
-        return (((512 + rmean) * rd * rd) >> 8) + 4 * gd * gd + (((767 - rmean) * bd * bd) >> 8);
+        let lab1 = rgbToLab(r1, g1, b1);
+        let lab2 = rgbToLab(r2, g2, b2);
+        
+        // 计算LAB空间中的欧氏距离
+        return Math.sqrt(
+            Math.pow(lab2.l - lab1.l, 2) + 
+            Math.pow(lab2.a - lab1.a, 2) + 
+            Math.pow(lab2.b - lab1.b, 2)
+        );
+    }
+
+    // 在 colorDistance 函数之前添加 rgbToLab 函数
+    function rgbToLab(r, g, b) {
+        // 首先转换到 [0,1] 范围
+        r = r / 255;
+        g = g / 255;
+        b = b / 255;
+        
+        // sRGB to linear RGB
+        r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+        g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+        b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+        
+        // 线性RGB到XYZ
+        r = r * 100;
+        g = g * 100;
+        b = b * 100;
+        
+        let x = r * 0.4124 + g * 0.3576 + b * 0.1805;
+        let y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+        let z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+        
+        // XYZ到Lab
+        x = x / 95.047;
+        y = y / 100;
+        z = z / 108.883;
+        
+        x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
+        y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
+        z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
+        
+        return {
+            l: (116 * y) - 16,
+            a: 500 * (x - y),
+            b: 200 * (y - z)
+        };
     }
 
     //使canvas的尺寸与屏幕大小一致并且不超过当前大图尺寸
@@ -1470,6 +1512,136 @@
             });
             $('#loadingMask').modal('show');
         }
+    }
+
+    // 添加度转弧度的辅助函数
+    function deg2rad(deg) {
+        return deg * (Math.PI / 180);
+    }
+
+    // 添加弧度转度的辅助函数
+    function rad2deg(rad) {
+        return rad * (180 / Math.PI);
+    }
+
+    // CIEDE2000色差公式实现
+    function CIEDE2000(lab1, lab2) {
+        // 定义权重
+        const kL = 1, kC = 1, kH = 1;
+        
+        // 计算C'i
+        const C1 = Math.sqrt(lab1.a * lab1.a + lab1.b * lab1.b);
+        const C2 = Math.sqrt(lab2.a * lab2.a + lab2.b * lab2.b);
+        const Cb = (C1 + C2) / 2;
+        
+        // 计算G
+        const G = 0.5 * (1 - Math.sqrt(Math.pow(Cb, 7) / (Math.pow(Cb, 7) + Math.pow(25, 7))));
+        
+        // 计算a'i
+        const a1p = (1 + G) * lab1.a;
+        const a2p = (1 + G) * lab2.a;
+        
+        // 计算C'i
+        const C1p = Math.sqrt(a1p * a1p + lab1.b * lab1.b);
+        const C2p = Math.sqrt(a2p * a2p + lab2.b * lab2.b);
+        
+        // 计算h'i
+        let h1p = rad2deg(Math.atan2(lab1.b, a1p));
+        if (h1p < 0) h1p += 360;
+        
+        let h2p = rad2deg(Math.atan2(lab2.b, a2p));
+        if (h2p < 0) h2p += 360;
+        
+        // 计算ΔL', ΔC', ΔH'
+        const deltaLp = lab2.l - lab1.l;
+        const deltaCp = C2p - C1p;
+        
+        let deltahp;
+        if (C1p * C2p === 0) {
+            deltahp = 0;
+        } else {
+            if (Math.abs(h2p - h1p) <= 180) {
+                deltahp = h2p - h1p;
+            } else if (h2p - h1p > 180) {
+                deltahp = h2p - h1p - 360;
+            } else {
+                deltahp = h2p - h1p + 360;
+            }
+        }
+        
+        const deltaHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(deg2rad(deltahp / 2));
+        
+        // 计算平均值
+        const Lp = (lab1.l + lab2.l) / 2;
+        const Cp = (C1p + C2p) / 2;
+        
+        let hp;
+        if (C1p * C2p === 0) {
+            hp = h1p + h2p;
+        } else {
+            if (Math.abs(h1p - h2p) <= 180) {
+                hp = (h1p + h2p) / 2;
+            } else if (h1p + h2p < 360) {
+                hp = (h1p + h2p + 360) / 2;
+            } else {
+                hp = (h1p + h2p - 360) / 2;
+            }
+        }
+        
+        // 计算T
+        const T = 1 - 0.17 * Math.cos(deg2rad(hp - 30)) + 
+                  0.24 * Math.cos(deg2rad(2 * hp)) + 
+                  0.32 * Math.cos(deg2rad(3 * hp + 6)) - 
+                  0.20 * Math.cos(deg2rad(4 * hp - 63));
+        
+        // 计算ΔΘ
+        const deltaTheta = 30 * Math.exp(-Math.pow((hp - 275) / 25, 2));
+        
+        // 计算RC
+        const RC = 2 * Math.sqrt(Math.pow(Cp, 7) / (Math.pow(Cp, 7) + Math.pow(25, 7)));
+        
+        // 计算SL
+        const SL = 1 + (0.015 * Math.pow(Lp - 50, 2)) / Math.sqrt(20 + Math.pow(Lp - 50, 2));
+        
+        // 计算SC
+        const SC = 1 + 0.045 * Cp;
+        
+        // 计算SH
+        const SH = 1 + 0.015 * Cp * T;
+        
+        // 计算RT
+        const RT = -Math.sin(deg2rad(2 * deltaTheta)) * RC;
+        
+        // 计算最终的色差
+        const deltaE = Math.sqrt(
+            Math.pow(deltaLp / (kL * SL), 2) +
+            Math.pow(deltaCp / (kC * SC), 2) +
+            Math.pow(deltaHp / (kH * SH), 2) +
+            RT * (deltaCp / (kC * SC)) * (deltaHp / (kH * SH))
+        );
+        
+        return deltaE;
+    }
+
+    // 修改颜色距离计算函数，结合LAB欧氏距离和CIEDE2000
+    function colorDistance(r1, g1, b1, r2, g2, b2) {
+        let lab1 = rgbToLab(r1, g1, b1);
+        let lab2 = rgbToLab(r2, g2, b2);
+        
+        // 计算LAB欧氏距离
+        const labDistance = Math.sqrt(
+            Math.pow(lab2.l - lab1.l, 2) + 
+            Math.pow(lab2.a - lab1.a, 2) + 
+            Math.pow(lab2.b - lab1.b, 2)
+        );
+        
+        // 计算CIEDE2000距离
+        const ciede2000Distance = CIEDE2000(lab1, lab2);
+        
+        // 结合两种距离，使用加权平均
+        // CIEDE2000权重更高因为它更准确
+        const weight = 0.7; // CIEDE2000的权重
+        return (weight * ciede2000Distance + (1 - weight) * labDistance);
     }
 </script>
 

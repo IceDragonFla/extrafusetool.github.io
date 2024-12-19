@@ -1,3 +1,56 @@
+// 在文件开头添加颜色转换函数
+function rgbToLab(r, g, b) {
+    // 首先转换到 [0,1] 范围
+    r = r / 255;
+    g = g / 255;
+    b = b / 255;
+    
+    // sRGB to linear RGB
+    r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+    
+    // 线性RGB到XYZ
+    r = r * 100;
+    g = g * 100;
+    b = b * 100;
+    
+    let x = r * 0.4124 + g * 0.3576 + b * 0.1805;
+    let y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+    let z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+    
+    // XYZ到Lab
+    x = x / 95.047;
+    y = y / 100;
+    z = z / 108.883;
+    
+    x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
+    y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
+    z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
+    
+    return {
+        l: (116 * y) - 16,
+        a: 500 * (x - y),
+        b: 200 * (y - z)
+    };
+}
+
+// 修改颜色距离计算函数
+function colorDistance(r1, g1, b1, r2, g2, b2) {
+    let lab1 = rgbToLab(r1, g1, b1);
+    let lab2 = rgbToLab(r2, g2, b2);
+    
+    // 计算LAB空间中的欧氏距离
+    return Math.sqrt(
+        Math.pow(lab2.l - lab1.l, 2) + 
+        Math.pow(lab2.a - lab1.a, 2) + 
+        Math.pow(lab2.b - lab1.b, 2)
+    );
+}
+
+// findSimilarColor 函数保持不变，因为它已经使用了缓存机制
+// 但它会使用新的 colorDistance 函数来获得更准确的颜色匹配
+
 var allPalettes = new Map();
 allPalettes.set("mard",
     [
