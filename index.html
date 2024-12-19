@@ -190,24 +190,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="dropdown float-right mx-2">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="dropdownColorSum"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        颜色统计
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-right overflow-auto" aria-labelledby="dropdownColorSum"
-                        id="colorSum" style="max-height:600px;min-width: 180px;">
-                        <table class="table table-sm">
-                            <thead>
-                                <th style="width: 36px;">颜色</th>
-                                <th>数量</th>
-                                <th></th>
-                            </thead>
-                            <tbody id="colorSumTable">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <button class="btn btn-outline-primary float-right mx-2" type="button" id="showColorSum">
+                    颜色统计
+                </button>
                 <div class="float-right mx-2" id="brushToolBar">
                     <label id='brushInfo'></label>
                     <button type="button" class="btn btn-danger" id="disableBrushMode">退出</button>
@@ -321,15 +306,44 @@
     </div>
     <div class="modal hide" id="loadingMask" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static"
         data-keyboard="false">
-        <div class="modal-dialog" role="document">
-             <div class="modal-content">
-                <div class="modal-body">
+        <div class="modal-dialog" role="document">
+             <div class="modal-content">
+                <div class="modal-body">
                     <div class="mask">
                         <div class="spinner-border text-dark m-3" role="status">
                             <span class="sr-only"></span>
                         </div>
                         <span class="h1"> 绘制中...</span>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 颜色统计模态框 -->
+    <div class="modal fade" id="colorSumModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">颜色统计</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th style="width: 36px;">颜色</th>
+                                <th>数量</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="colorSumTable">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="copyColorSum">复制统计结果</button>
                 </div>
             </div>
         </div>
@@ -618,6 +632,43 @@
                     $("#importErrorAlert").alert().delay(2000).slideUp(200, function () {
                         $(this).alert('close');
                     });
+                }
+            });
+
+            // 颜色统计按钮点击事件
+            $('#showColorSum').on('click tap', function() {
+                $('#colorSumModal').modal('show');
+            });
+
+            // 复制颜色统计结果
+            $('#copyColorSum').on('click tap', async function() {
+                let copyText = '颜色统��������果\n';
+                for (let [color, count] of colorSum) {
+                    if (color === 'Err') continue;
+                    let colorName = paletteMap.get(color).name;
+                    copyText += `${colorName}(#${color}): ${count}个\n`;
+                }
+                
+                try {
+                    await navigator.clipboard.writeText(copyText);
+                    alert('复制成功！');
+                } catch (err) {
+                    console.error('复制失败: ', err);
+                    // 降级方案
+                    const textarea = document.createElement('textarea');
+                    textarea.value = copyText;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('复制成功！');
+                    } catch (err) {
+                        console.error('复制失败: ', err);
+                        alert('复制失败，请手动复制');
+                    }
+                    document.body.removeChild(textarea);
                 }
             });
 
@@ -1008,11 +1059,11 @@
         let colorSumSorted = new Map([...colorSum.entries()].sort(function (a, b) {
             return b[1] - a[1];
         }));
-        let sumHtml = '<tr><td>合计</td><td>' + totolBeadCount + '</td><td></td></tr>';
+        let sumHtml = '<tr class="table-info"><td>合计</td><td>' + totolBeadCount + '</td><td></td></tr>';
         for (let [color, count] of colorSumSorted) {
             sumHtml += '<tr><td style="background:#' + color + ';color:' + getFontColor(color) + ';">' + paletteMap.get(color).name + '</td><td>' + count + '</td>';
             if (color != 'Err')
-                sumHtml += '<td><button type="button" class="btn btn-primary btn-sm filterColor" title="只显示所有' + paletteMap.get(color).name + '" value=' + color + '>&lt;&lt;</button></td></tr>';
+                sumHtml += '<td><button type="button" class="btn btn-outline-primary btn-sm filterColor" title="只显示所有' + paletteMap.get(color).name + '" value=' + color + '>筛选</button></td></tr>';
             else
                 sumHtml += '<td></td></tr>';
         }
@@ -1369,20 +1420,8 @@
         }
         $('#colorSelector').html(colorSelectorHtml);
 
-        //选色块点击事件
-        $('#colorSelector>div').on('click tap', function (e) {
-            $('#colorSelector>div.selected').removeClass('selected');
-            $(this).addClass('selected');
-            //修改按钮标签
-            $('#replaceColor').html('所有' + selectedPixel.name + '换成' + $(this).html());
-            $('#replacePixel').html('此像素换成' + $(this).html());
-            $('#replacePixelBrush').html('使用' + $(this).html() + '笔刷');
-            $('#colorToolBar').css('visibility', 'visible');
-
-            $('#replacePixel').val($(this).attr('color'));
-            $('#replaceColor').val($(this).attr('color'));
-            $('#replacePixelBrush').val($(this).attr('color'));
-        });
+        // 绑定选色块点击事件
+        bindColorSelectorEvents();
     }
 
     //十六进制颜色转rgb数值
@@ -1643,6 +1682,97 @@
         const weight = 0.7; // CIEDE2000的权重
         return (weight * ciede2000Distance + (1 - weight) * labDistance);
     }
+
+    // 修改颜色统计排序部分
+    let colorSumSorted = new Map([...colorSum.entries()].sort((a, b) => {
+        // 如果是错误颜色，放到最后
+        if (a[0] === 'Err') return 1;
+        if (b[0] === 'Err') return -1;
+        
+        // 使用自然排序
+        return naturalSort(a, b);
+    }));
+
+    // 在generateColorSelectorHtml函数后添加
+    // 颜色排序函数
+    function sortColors(type) {
+        let colors = Array.from(paletteMap.entries());
+        
+        switch(type) {
+            case 'code':
+                // 按色号排序
+                colors.sort((a, b) => {
+                    let [aAlpha, aNum] = splitAlphaNum(a[1].name);
+                    let [bAlpha, bNum] = splitAlphaNum(b[1].name);
+                    if (aAlpha !== bAlpha) {
+                        return aAlpha.localeCompare(bAlpha);
+                    }
+                    return aNum - bNum;
+                });
+                break;
+                
+            case 'similar':
+                // 按与当前选中颜色的相似度排序
+                if (selectedPixel) {
+                    let baseColor = hexToRgb(selectedPixel.color);
+                    colors.sort((a, b) => {
+                        let distA = colorDistance(baseColor.r, baseColor.g, baseColor.b, a[1].r, a[1].g, a[1].b);
+                        let distB = colorDistance(baseColor.r, baseColor.g, baseColor.b, b[1].r, b[1].g, b[1].b);
+                        return distA - distB;
+                    });
+                }
+                break;
+                
+            case 'hue':
+                // 按色相排序
+                colors.sort((a, b) => {
+                    let hslA = rgbToHsl(a[1].r, a[1].g, a[1].b);
+                    let hslB = rgbToHsl(b[1].r, b[1].g, b[1].b);
+                    return hslA.h - hslB.h;
+                });
+                break;
+        }
+        
+        // 重新生成颜色选择器HTML
+        let colorSelectorHtml = '';
+        for (let [hex, color] of colors) {
+            let fontColor = getFontColor(color.r, color.g, color.b);
+            colorSelectorHtml += `<div class='colorBlock pointer' style='background:#${hex};color:${fontColor};' color='${hex}' title='#${hex}'>${color.name}</div>`;
+        }
+        $('#colorSelector').html(colorSelectorHtml);
+        
+        // 重新绑定点击事件
+        bindColorSelectorEvents();
+    }
+
+    // 分离字母和数字
+    function splitAlphaNum(str) {
+        let alpha = str.match(/[a-zA-Z]+/)[0];
+        let num = parseInt(str.match(/\d+/)[0]);
+        return [alpha, num];
+    }
+
+    // 将颜色选择器的点击事件绑定抽离出来
+    function bindColorSelectorEvents() {
+        $('#colorSelector>div').on('click tap', function(e) {
+            $('#colorSelector>div.selected').removeClass('selected');
+            $(this).addClass('selected');
+            //修改按钮标签
+            $('#replaceColor').html('所有' + selectedPixel.name + '换成' + $(this).html());
+            $('#replacePixel').html('此像素换成' + $(this).html());
+            $('#replacePixelBrush').html('使用' + $(this).html() + '笔刷');
+            $('#colorToolBar').css('visibility', 'visible');
+
+            $('#replacePixel').val($(this).attr('color'));
+            $('#replaceColor').val($(this).attr('color'));
+            $('#replacePixelBrush').val($(this).attr('color'));
+        });
+    }
+
+    // 在事件绑定部分添加
+    $('#sortByCode').on('click tap', () => sortColors('code'));
+    $('#sortBySimilar').on('click tap', () => sortColors('similar'));
+    $('#sortByHue').on('click tap', () => sortColors('hue'));
 </script>
 
 </html>
