@@ -365,7 +365,7 @@
         currentSliceImage = null;//当前显示的切块图位置（显示全图时为null）
 
     var selectedPixel = null,//当前选中的像素点（x,y,color)
-        filterColor = '',//颜色筛选（只显示此颜色的色块）
+        filterColors = new Set(); // 替换原来的 filterColor = ''
         colorReplaceList = new Map(),//颜色替换列表
         pixelColorReplaceList = new Map();//颜色替换列表（单个像素）
 
@@ -518,7 +518,7 @@
             //只显示某颜色按钮点击
             $('#showSingleColor').on('click tap', function (e) {
                 $('#colorModal').modal('hide');
-                filterColor = selectedPixel.color; // 设置筛选颜色
+                filterColors = new Set([selectedPixel.color]); // 设置筛选颜色
                 refreshImage();
             });
 
@@ -773,8 +773,8 @@
             || realClickY < 0 || realClickY > viewCanvas.height + largeCanvasOffsetY - 2 * (pixelSize + 1)) return;
 
         //如果当前正在过滤颜色，则恢复全部颜色
-        if (filterColor) {
-            filterColor = null;
+        if (filterColors.size > 0) {
+            filterColors.clear();
             refreshImage();
             return;
         }
@@ -1039,7 +1039,7 @@
                 else colorSum.set(hex, 1);
                 
                 // 只在非调暗状态(没有筛选或者是被筛选的颜色)时绘制文字
-                if (!filterColor || filterColor === hex) {
+                if (!filterColors.size > 0 || filterColors.has(hex)) {
                     largeCtx.fillText(color.name, x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
                 }
             }
@@ -1049,7 +1049,7 @@
                 else colorSum.set('Err', 1);
                 
                 // 错误颜色也只在非调暗状态显示
-                if (!filterColor || filterColor === hex) {
+                if (!filterColors.size > 0 || filterColors.has(hex)) {
                     largeCtx.fillText('Err', x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
                 }
             }
@@ -1068,31 +1068,57 @@
         let colorSumSorted = new Map([...colorSum.entries()].sort(function (a, b) {
             return b[1] - a[1];
         }));
-        let sumHtml = '<tr class="table-info"><td>合计</td><td>' + totolBeadCount + '</td><td></td></tr>';
+        let sumHtml = '<tr class="table-info"><td><button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColors">全选</button></td><td>合计</td><td>' + totolBeadCount + '</td><td><button type="button" class="btn btn-sm btn-outline-danger" id="clearColorFilter">清除</button></td></tr>';
         for (let [color, count] of colorSumSorted) {
-            sumHtml += '<tr><td style="background:#' + color + ';color:' + getFontColor(color) + ';">' + paletteMap.get(color).name + '</td><td>' + count + '</td>';
-            if (color != 'Err')
-                sumHtml += '<td><button type="button" class="btn btn-outline-primary btn-sm filterColor" title="只显示所有' + paletteMap.get(color).name + '" value=' + color + '>筛选</button></td></tr>';
-            else
-                sumHtml += '<td></td></tr>';
+            sumHtml += '<tr><td><input type="checkbox" class="color-filter-checkbox" value="' + color + '"' + 
+                (filterColors.has(color) ? ' checked' : '') + '></td>' +
+                '<td style="background:#' + color + ';color:' + getFontColor(color) + ';">' + 
+                paletteMap.get(color).name + '</td><td>' + count + '</td><td></td></tr>';
         }
         $('#colorSumTable').html(sumHtml);
 
-        //绑定颜色筛选事件
-        $('.filterColor').on('click tap', function (e) {
-            let color = $(this).attr('value');
-            if (color && color != 'Err') {
-                filterColor = color;
-                refreshImage();
+        // 绑定复选框事件
+        $('.color-filter-checkbox').on('change', function() {
+            let color = $(this).val();
+            if (this.checked) {
+                filterColors.add(color);
+            } else {
+                filterColors.delete(color);
             }
+            refreshImage();
+        });
+
+        // 全选按钮事件
+        $('#selectAllColors').on('click', function() {
+            $('.color-filter-checkbox').each(function() {
+                let color = $(this).val();
+                if (color !== 'Err') {
+                    $(this).prop('checked', true);
+                    filterColors.add(color);
+                }
+            });
+            refreshImage();
+        });
+
+        // 清除按钮事件
+        $('#clearColorFilter').on('click', function() {
+            $('.color-filter-checkbox').prop('checked', false);
+            filterColors.clear();
+            refreshImage();
         });
 
         let infoHtml = currentSliceImage ?
             "图块(" + (currentSliceImage.y + 1) + "," + (currentSliceImage.x + 1) + ") ,(" + pieceSize + "x" + pieceSize + ")"
             : "全图(" + fullCanvas.width + "x" + fullCanvas.height + ")";
-        if (filterColor) {
-            infoHtml += "(只显示<div class='colorBlock' style='background:#" + filterColor + ";color:" + getFontColor(filterColor) + ";'>"
-                + paletteMap.get(filterColor).name + "</div>, 点击大图显示全部)";
+        if (filterColors.size > 0) {
+            infoHtml += "(显示: ";
+            let colorNames = [];
+            for (let color of filterColors) {
+                colorNames.push("<div class='colorBlock' style='background:#" + color + 
+                    ";color:" + getFontColor(color) + ";'>" + 
+                    paletteMap.get(color).name + "</div>");
+            }
+            infoHtml += colorNames.join(', ') + ", 点击清除按钮显示全部)";
         }
         //显示大图摘要说明
         $('#largePicInfo').html(infoHtml);
@@ -1254,7 +1280,7 @@
                     }
 
                     //如果启用过滤颜色则只显示此颜色
-                    if (filterColor && filterColor != hex) {
+                    if (filterColors.size > 0 && !filterColors.has(hex)) {
                         // 将不匹配的颜色调暗
                         r = Math.floor(r * 0.4); // 调暗系数可以根据需要调整
                         g = Math.floor(g * 0.4);
