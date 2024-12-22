@@ -277,7 +277,7 @@
                             <li>可以上传本地图片，将每个像素转换成为相近颜色的拼豆并放大，供实际拼豆时参考；</li>
                             <li>图片限制尺寸为500x500，建议使用PNG格式；</li>
                             <li>可以将图片切分成不同尺寸的图块，点击上方图块或全图可以切换放大部分；</li>
-                            <li>大图上方的“颜色统计”按钮可以查看所有颜色的拼豆数量；</li>
+                            <li>大图上方的"颜色统计"按钮可以查看所有颜色的拼豆数量；</li>
                             <li>可以只显示某种颜色用于快速摆放拼豆，一种方式是点击大图上的像素在弹出对话框中操作，另一种是在颜色统计按钮中直接点击颜色旁边的&lt;&lt;按钮；</li>
                             <li>点击大图上的像素，可以在弹出对话框中选择替换颜色，有三种方法：
                                 <ul>
@@ -286,7 +286,7 @@
                                     <li>使用笔刷模式在大图上批量修改颜色；</li>
                                 </ul>
                             </li>
-                            <li>大图上方的“颜色替换”按钮可以查看并删除所有已替换的颜色，也可以导入/导出所有替换列表，方便制作大型拼豆项目。</li>
+                            <li>大图上方的"颜色替换"按钮可以查看并删除所有已替换的颜色，也可以导入/导出所有替换列表，方便制作大型拼豆项目。</li>
                         </ul>
                     </p>
                     <p>当前的拼豆调色板默认为<b>Mard</b>品牌的融合豆，并增加了国外几个较主流品牌的颜色作为参考。</p>
@@ -518,7 +518,7 @@
             //只显示某颜色按钮点击
             $('#showSingleColor').on('click tap', function (e) {
                 $('#colorModal').modal('hide');
-                filterColor = selectedPixel.color;
+                filterColor = selectedPixel.color; // 设置筛选颜色
                 refreshImage();
             });
 
@@ -642,7 +642,7 @@
 
             // 复制颜色统计结果
             $('#copyColorSum').on('click tap', async function() {
-                let copyText = '颜色统��������果\n';
+                let copyText = '颜色统计结果\n';
                 for (let [color, count] of colorSum) {
                     if (color === 'Err') continue;
                     let colorName = paletteMap.get(color).name;
@@ -1037,13 +1037,22 @@
             if (color) {
                 if (colorSum.has(hex)) colorSum.set(hex, colorSum.get(hex) + 1);
                 else colorSum.set(hex, 1);
+                
+                // 只在非调暗状态(没有筛选或者是被筛选的颜色)时绘制文字
+                if (!filterColor || filterColor === hex) {
+                    largeCtx.fillText(color.name, x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
+                }
             }
             else {
                 console.log('Error color: ' + rgbToHex(r, g, b));
                 if (colorSum.has('Err')) colorSum.set('Err', colorSum.get('Err') + 1);
                 else colorSum.set('Err', 1);
+                
+                // 错误颜色也只在非调暗状态显示
+                if (!filterColor || filterColor === hex) {
+                    largeCtx.fillText('Err', x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
+                }
             }
-            largeCtx.fillText(color ? color.name : 'Err', x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
         }
 
         if (!keepOffset) {//保持拖拽偏移量不变（刷新时用）
@@ -1205,69 +1214,77 @@
     //刷新图片（修改显示像素或者替换颜色之后，保持当前视角不变进行刷新）
     function refreshImage() {
         showLoadingMask(() => {
-            let ctx = fullCanvas.getContext('2d'),
-                newImageData = ctx.createImageData(paletteImageData);//新建一份原尺寸的透明图形数据
+            try {
+                let ctx = fullCanvas.getContext('2d'),
+                    newImageData = ctx.createImageData(paletteImageData);//新建一份原尺寸的透明图形数据
 
-            //逐像素读取替换调色板后的原图
-            for (let i = 0; i < paletteImageData.data.length; i += 4) {
-                //如果透明则跳过
-                let a = paletteImageData.data[i + 3];
-                if (a == 0) continue;
+                //逐像素读取替换调色板后的原图
+                for (let i = 0; i < paletteImageData.data.length; i += 4) {
+                    //如果透明则跳过
+                    let a = paletteImageData.data[i + 3];
+                    if (a == 0) continue;
 
-                //获取颜色值
-                let r = paletteImageData.data[i];
-                let g = paletteImageData.data[i + 1];
-                let b = paletteImageData.data[i + 2];
-                let hex = rgbToHex(r, g, b);
+                    //获取颜色值
+                    let r = paletteImageData.data[i];
+                    let g = paletteImageData.data[i + 1];
+                    let b = paletteImageData.data[i + 2];
+                    let hex = rgbToHex(r, g, b);
 
-                //计算坐标
-                let x = (i / 4) % paletteImageData.width;
-                let y = ~~((i / 4) / paletteImageData.width);
+                    //计算坐标
+                    let x = (i / 4) % paletteImageData.width;
+                    let y = ~~((i / 4) / paletteImageData.width);
 
-                //检查像素替换颜色
-                if (pixelColorReplaceList.has(x + ',' + y)) {
-                    let replaceColor = pixelColorReplaceList.get(x + ',' + y).new;
-                    let replaceColorRgb = hexToRgb(replaceColor);
-                    hex = replaceColor;
-                    r = replaceColorRgb.r;
-                    g = replaceColorRgb.g;
-                    b = replaceColorRgb.b;
+                    //检查像素替换颜色
+                    if (pixelColorReplaceList.has(x + ',' + y)) {
+                        let replaceColor = pixelColorReplaceList.get(x + ',' + y).new;
+                        let replaceColorRgb = hexToRgb(replaceColor);
+                        hex = replaceColor;
+                        r = replaceColorRgb.r;
+                        g = replaceColorRgb.g;
+                        b = replaceColorRgb.b;
+                    }
+                    //检查替换颜色
+                    else if (colorReplaceList.has(hex)) {
+                        let replaceColor = colorReplaceList.get(hex);
+                        let replaceColorRgb = hexToRgb(replaceColor);
+                        hex = replaceColor;
+                        r = replaceColorRgb.r;
+                        g = replaceColorRgb.g;
+                        b = replaceColorRgb.b;
+                    }
+
+                    //如果启用过滤颜色则只显示此颜色
+                    if (filterColor && filterColor != hex) {
+                        // 将不匹配的颜色调暗
+                        r = Math.floor(r * 0.4); // 调暗系数可以根据需要调整
+                        g = Math.floor(g * 0.4);
+                        b = Math.floor(b * 0.4);
+                    }
+
+                    //设置新图像素点
+                    newImageData.data[i] = r;
+                    newImageData.data[i + 1] = g;
+                    newImageData.data[i + 2] = b;
+                    newImageData.data[i + 3] = 255;//处理后一律变成不透明色
                 }
-                //检查替换颜色
-                else if (colorReplaceList.has(hex)) {
-                    let replaceColor = colorReplaceList.get(hex);
-                    let replaceColorRgb = hexToRgb(replaceColor);
-                    hex = replaceColor;
-                    r = replaceColorRgb.r;
-                    g = replaceColorRgb.g;
-                    b = replaceColorRgb.b;
+
+                //绘制过滤替换后的新图
+                ctx.putImageData(newImageData, 0, 0);
+
+                //将完整图片切成图块
+                sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+
+                //根据当前显示的是全图或图块显示视图
+                if (!currentSliceImage) {
+                    showFullImageView(true);
+                } else {
+                    if (currentSliceImage.y >= sliceImages.length) currentSliceImage.y = 0;
+                    if (currentSliceImage.x >= sliceImages[0].length) currentSliceImage.x = 0;
+                    showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
                 }
-
-                //如果启用过滤颜色则只显示此颜色
-                if (filterColor && filterColor != hex) continue;
-
-                //设置新图像素点
-                newImageData.data[i] = r;
-                newImageData.data[i + 1] = g;
-                newImageData.data[i + 2] = b;
-                newImageData.data[i + 3] = 255;//处理后一律变成不透明色
-            }
-
-            //绘制过滤替换后的新图
-            ctx.putImageData(newImageData, 0, 0);
-
-            //将完整图片切成图块
-            sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
-
-            //根据当前显示的是全图或图块显示视图
-            if (!currentSliceImage) {
-                showFullImageView(true);
-            }
-            else {
-                //如果修改图块大小导致图块下标越界则归零
-                if (currentSliceImage.y >= sliceImages.length) currentSliceImage.y = 0;
-                if (currentSliceImage.x >= sliceImages[0].length) currentSliceImage.x = 0;
-                showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
+            } catch (err) {
+                console.error('Error in refreshImage:', err);
+                throw err; // 重新抛出错误以触发 finally
             }
         });
     }
@@ -1545,11 +1562,22 @@
         if (method) {
             $('#loadingMask').one('show.bs.modal', function (e) {
                 setTimeout(() => {
-                    method();
-                    $('#loadingMask').modal('hide');
+                    try {
+                        method();
+                    } catch (err) {
+                        console.error('Error in loading mask:', err);
+                    } finally {
+                        $('#loadingMask').modal('hide');
+                    }
                 }, 100);
             });
-            $('#loadingMask').modal('show');
+            
+            // 确保modal显示
+            try {
+                $('#loadingMask').modal('show');
+            } catch (err) {
+                console.error('Error showing loading mask:', err);
+            }
         }
     }
 
@@ -1656,7 +1684,7 @@
             Math.pow(deltaLp / (kL * SL), 2) +
             Math.pow(deltaCp / (kC * SC), 2) +
             Math.pow(deltaHp / (kH * SH), 2) +
-            RT * (deltaCp / (kC * SC)) * (deltaHp / (kH * SH))
+            RT * (deltaCp / (kC * SC)) * (deltaCp / (kC * SC)) * (deltaHp / (kH * SH))
         );
         
         return deltaE;
