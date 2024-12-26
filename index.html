@@ -58,7 +58,7 @@
         }
     </style>
 
-    <script src="js/palette.v3.js"></script>
+    <script src="js/palette.v3.1.js"></script>
     <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-3.4.1.min.js"></script>
     <script src="js/popper.min.js"></script>
     <script src='https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/bootstrap.min.js'></script>
@@ -91,7 +91,11 @@
                         <label class="col-sm-2 col-form-label">拼豆品牌：</label>
                         <select id="paletteSelect" class="form-control col-sm-4">
                             <option value="mard" selected>Mard融合豆</option>
-                            <option value="hama">Hama</option>
+                            <option value="huangdoudou">黄豆豆</option>
+                            <option value="manman">漫漫</option>
+                            <option value="xiaowu">小舞</option>
+                            <option value="panpan">盼盼</option>
+                                                    <option value="hama">Hama</option>
                             <option value="perler">Perler 5mm</option>
                             <option value="perler-mini">Perler mini 2.6mm</option>
                             <option value="nabbi">Nabbi</option>
@@ -435,7 +439,7 @@
             // 如果没有选择功能色，则过滤掉所有功能色
             return palette.filter(color => !['Y', 'R', 'P', 'Q'].some(prefix => color.name.startsWith(prefix)));
         } else {
-            // 如果选择了功能色，则只保留普��色和选中的功能色
+            // 如果选择了功能色，则只保留普通色和选中的功能色
             return palette.filter(color => {
                 const prefix = color.name.charAt(0);
                 return !['Y', 'R', 'P', 'Q'].includes(prefix) || selectedFunctionColors.has(prefix);
