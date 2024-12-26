@@ -304,7 +304,7 @@
                             <li>图片限制尺寸为500x500，建议使用PNG格式；</li>
                             <li>可以将图片切分成不同尺寸的图块，点击上方图块或全图可以切换放大部分；</li>
                             <li>大图上方的"颜色统计"按钮可以查看所有颜色的拼豆数量；</li>
-                            <li>可以只显示某种颜色用于快速摆放拼豆，���种方式是点击大图上的像素在弹出对话框中操作，另一种是在颜色统计按钮中直接点击颜色旁边的&lt;&lt;按钮；</li>
+                            <li>可以只显示某种颜色用于快速摆放拼豆，一种方式是点击大图上的像素在弹出对话框中操作，另一种是在颜色统计按钮中直接点击颜色旁边的&lt;&lt;按钮；</li>
                             <li>点击大图上的像素，可以在弹出对话框中选择替换颜色，有三种方法：
                                 <ul>
                                     <li>替换所有颜色为另一种颜色； </li>
@@ -465,7 +465,36 @@
         } else {
             selectedFunctionColors.delete(this.value);
         }
-        updatePaletteAndRefresh();
+        
+        // 重新生成调色板
+        let currentPalette = allPalettes.get($('#paletteSelect').val());
+        let filteredPalette = filterPalette(currentPalette);
+        paletteMap = generatePaletteMap(filteredPalette);
+        similarColorCache = new Map(); // 清空缓存
+        
+        // 如果已经有图片，则重新生成
+        if (originalCanvas) {
+            showLoadingMask(() => {
+                try {
+                    // 重新生成调色板图像
+                    toPaletteColor(originalCanvas, fullCanvas);
+                    // 重新生成切片
+                    sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+                    // 重新显示
+                    if (!currentSliceImage) {
+                        showFullImageView(true);
+                    } else {
+                        showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
+                    }
+                } catch (err) {
+                    console.error('Error in function color change:', err);
+                    throw err;
+                }
+            });
+        }
+        
+        // 重新生成颜色选择器
+        generateColorSelectorHtml();
     });
 
     // 修改调色板选择事件
@@ -493,7 +522,7 @@
         //事件绑定
         {
             var lastWindowWidth = window.innerWidth;
-            //窗口重绘后重设canvas���寸
+            //窗口重绘后重设canvas尺寸
             window.addEventListener('resize', function (e) {
                 //只有宽度真正改变时才继续，阻止移动设备上的拖拽误触发resize事件
                 if (lastWindowWidth == window.innerWidth) return;
@@ -1143,7 +1172,7 @@
         }
 
         resizeViewCanvasFitWindow();
-        //绘制部分图��到viewCanvas
+        //绘制部分图像到viewCanvas
         showPartView();
 
         //按颜色数量递减排序并显示在颜色统计框
@@ -1653,7 +1682,7 @@
         return deg * (Math.PI / 180);
     }
 
-    // 添加弧度转度的辅��函数
+    // 添加弧度转度的辅助函数
     function rad2deg(rad) {
         return rad * (180 / Math.PI);
     }
