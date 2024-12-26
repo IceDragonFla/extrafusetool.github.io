@@ -58,7 +58,7 @@
         }
     </style>
 
-    <script src="js/palette.v2.2.js"></script>
+    <script src="js/palette.v3.js"></script>
     <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-3.4.1.min.js"></script>
     <script src="js/popper.min.js"></script>
     <script src='https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/bootstrap.min.js'></script>
@@ -146,6 +146,14 @@
                 <div class="card">
                     <div class="card-header">
                         原始图片
+                        <div class="float-right">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="flipHorizontal" title="水平镜像">
+                                ↔
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="flipVertical" title="垂直镜像">
+                                ↕
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <canvas id="originalCanvas"></canvas>
@@ -427,7 +435,7 @@
             // 如果没有选择功能色，则过滤掉所有功能色
             return palette.filter(color => !['Y', 'R', 'P', 'Q'].some(prefix => color.name.startsWith(prefix)));
         } else {
-            // 如果选择了功能色，则只保留普通色和选中的功能色
+            // 如果选择了功能色，则只保留普��色和选中的功能色
             return palette.filter(color => {
                 const prefix = color.name.charAt(0);
                 return !['Y', 'R', 'P', 'Q'].includes(prefix) || selectedFunctionColors.has(prefix);
@@ -1945,6 +1953,64 @@
     $('#sortByCode').on('click tap', () => sortColors('code'));
     $('#sortBySimilar').on('click tap', () => sortColors('similar'));
     $('#sortByHue').on('click tap', () => sortColors('hue'));
+
+    // 添加镜像函数
+    function flipImage(direction) {
+        showLoadingMask(() => {
+            try {
+                // 1. 先对原始图片进行镜像处理
+                let ctx = originalCanvas.getContext('2d');
+                let imageData = ctx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+                let flippedData = ctx.createImageData(originalCanvas.width, originalCanvas.height);
+                
+                for (let y = 0; y < originalCanvas.height; y++) {
+                    for (let x = 0; x < originalCanvas.width; x++) {
+                        let sourcePos = (y * originalCanvas.width + x) * 4;
+                        let targetX = direction === 'horizontal' ? originalCanvas.width - 1 - x : x;
+                        let targetY = direction === 'vertical' ? originalCanvas.height - 1 - y : y;
+                        let targetPos = (targetY * originalCanvas.width + targetX) * 4;
+                        
+                        flippedData.data[targetPos] = imageData.data[sourcePos];         // R
+                        flippedData.data[targetPos + 1] = imageData.data[sourcePos + 1]; // G
+                        flippedData.data[targetPos + 2] = imageData.data[sourcePos + 2]; // B
+                        flippedData.data[targetPos + 3] = imageData.data[sourcePos + 3]; // A
+                    }
+                }
+                
+                ctx.putImageData(flippedData, 0, 0);
+                
+                // 2. 清空所有缓存
+                similarColorCache = new Map();
+                paletteImageData = new Array();
+                sliceImages = new Array();
+                currentSliceImage = null;
+                largeCanvasOffsetX = 0;
+                largeCanvasOffsetY = 0;
+                
+                // 3. 重新生成调色板图像
+                toPaletteColor(originalCanvas, fullCanvas);
+                
+                // 4. 重新生成切片
+                sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+                
+                // 5. 重新显示完整视图
+                showFullImageView();
+                
+            } catch (err) {
+                console.error('Error in flip image:', err);
+                throw err;
+            }
+        });
+    }
+
+    // 绑定按钮事件
+    $('#flipHorizontal').on('click tap', function() {
+        flipImage('horizontal');
+    });
+
+    $('#flipVertical').on('click tap', function() {
+        flipImage('vertical');
+    });
 </script>
 
 </html>
