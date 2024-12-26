@@ -58,7 +58,7 @@
         }
     </style>
 
-    <script src="js/palette.v2.2.js"></script>
+    <script src="js/palette.v3.js"></script>
     <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-3.4.1.min.js"></script>
     <script src="js/popper.min.js"></script>
     <script src='https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/bootstrap.min.js'></script>
@@ -91,6 +91,9 @@
                         <label class="col-sm-2 col-form-label">拼豆品牌：</label>
                         <select id="paletteSelect" class="form-control col-sm-4">
                             <option value="mard" selected>Mard融合豆</option>
+                            <option value="huangdoudou">黄豆豆</option>
+                            <option value="manman">漫漫</option>
+                            <option value="panpan">盼盼</option>
                             <option value="hama">Hama</option>
                             <option value="perler">Perler 5mm</option>
                             <option value="perler-mini">Perler mini 2.6mm</option>
@@ -123,14 +126,6 @@
                 <div class="card">
                     <div class="card-header">
                         原始图片
-                        <div class="float-right">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="flipHorizontal" title="水平镜像">
-                                ↔
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="flipVertical" title="垂直镜像">
-                                ↕
-                            </button>
-                        </div>
                     </div>
                     <div class="card-body">
                         <canvas id="originalCanvas"></canvas>
@@ -373,7 +368,7 @@
         currentSliceImage = null;//当前显示的切块图位置（显示全图时为null）
 
     var selectedPixel = null,//当前选中的像素点（x,y,color)
-        filterColors = new Set(); // 替换原来的 filterColor = ''
+        filterColor = '',//颜色筛选（只显示此颜色的色块）
         colorReplaceList = new Map(),//颜色替换列表
         pixelColorReplaceList = new Map();//颜色替换列表（单个像素）
 
@@ -526,7 +521,7 @@
             //只显示某颜色按钮点击
             $('#showSingleColor').on('click tap', function (e) {
                 $('#colorModal').modal('hide');
-                filterColors = new Set([selectedPixel.color]); // 设置筛选颜色
+                filterColor = selectedPixel.color; // 设置筛选颜色
                 refreshImage();
             });
 
@@ -781,8 +776,8 @@
             || realClickY < 0 || realClickY > viewCanvas.height + largeCanvasOffsetY - 2 * (pixelSize + 1)) return;
 
         //如果当前正在过滤颜色，则恢复全部颜色
-        if (filterColors.size > 0) {
-            filterColors.clear();
+        if (filterColor) {
+            filterColor = null;
             refreshImage();
             return;
         }
@@ -1045,22 +1040,13 @@
             if (color) {
                 if (colorSum.has(hex)) colorSum.set(hex, colorSum.get(hex) + 1);
                 else colorSum.set(hex, 1);
-                
-                // 只在非调暗状态(没有筛选或者是被筛选的颜色)时绘制文字
-                if (!filterColors.size > 0 || filterColors.has(hex)) {
-                    largeCtx.fillText(color.name, x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
-                }
             }
             else {
                 console.log('Error color: ' + rgbToHex(r, g, b));
                 if (colorSum.has('Err')) colorSum.set('Err', colorSum.get('Err') + 1);
                 else colorSum.set('Err', 1);
-                
-                // 错误颜色也只在非调暗状态显示
-                if (!filterColors.size > 0 || filterColors.has(hex)) {
-                    largeCtx.fillText('Err', x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
-                }
             }
+            largeCtx.fillText(color ? color.name : 'Err', x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
         }
 
         if (!keepOffset) {//保持拖拽偏移量不变（刷新时用）
@@ -1076,57 +1062,31 @@
         let colorSumSorted = new Map([...colorSum.entries()].sort(function (a, b) {
             return b[1] - a[1];
         }));
-        let sumHtml = '<tr class="table-info"><td><button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColors">全选</button></td><td>合计</td><td>' + totolBeadCount + '</td><td><button type="button" class="btn btn-sm btn-outline-danger" id="clearColorFilter">清除</button></td></tr>';
+        let sumHtml = '<tr class="table-info"><td>合计</td><td>' + totolBeadCount + '</td><td></td></tr>';
         for (let [color, count] of colorSumSorted) {
-            sumHtml += '<tr><td><input type="checkbox" class="color-filter-checkbox" value="' + color + '"' + 
-                (filterColors.has(color) ? ' checked' : '') + '></td>' +
-                '<td style="background:#' + color + ';color:' + getFontColor(color) + ';">' + 
-                paletteMap.get(color).name + '</td><td>' + count + '</td><td></td></tr>';
+            sumHtml += '<tr><td style="background:#' + color + ';color:' + getFontColor(color) + ';">' + paletteMap.get(color).name + '</td><td>' + count + '</td>';
+            if (color != 'Err')
+                sumHtml += '<td><button type="button" class="btn btn-outline-primary btn-sm filterColor" title="只显示所有' + paletteMap.get(color).name + '" value=' + color + '>筛选</button></td></tr>';
+            else
+                sumHtml += '<td></td></tr>';
         }
         $('#colorSumTable').html(sumHtml);
 
-        // 绑定复选框事件
-        $('.color-filter-checkbox').on('change', function() {
-            let color = $(this).val();
-            if (this.checked) {
-                filterColors.add(color);
-            } else {
-                filterColors.delete(color);
+        //绑定颜色筛选事件
+        $('.filterColor').on('click tap', function (e) {
+            let color = $(this).attr('value');
+            if (color && color != 'Err') {
+                filterColor = color;
+                refreshImage();
             }
-            refreshImage();
-        });
-
-        // 全选按钮事件
-        $('#selectAllColors').on('click', function() {
-            $('.color-filter-checkbox').each(function() {
-                let color = $(this).val();
-                if (color !== 'Err') {
-                    $(this).prop('checked', true);
-                    filterColors.add(color);
-                }
-            });
-            refreshImage();
-        });
-
-        // 清除按钮事件
-        $('#clearColorFilter').on('click', function() {
-            $('.color-filter-checkbox').prop('checked', false);
-            filterColors.clear();
-            refreshImage();
         });
 
         let infoHtml = currentSliceImage ?
             "图块(" + (currentSliceImage.y + 1) + "," + (currentSliceImage.x + 1) + ") ,(" + pieceSize + "x" + pieceSize + ")"
             : "全图(" + fullCanvas.width + "x" + fullCanvas.height + ")";
-        if (filterColors.size > 0) {
-            infoHtml += "(显示: ";
-            let colorNames = [];
-            for (let color of filterColors) {
-                colorNames.push("<div class='colorBlock' style='background:#" + color + 
-                    ";color:" + getFontColor(color) + ";'>" + 
-                    paletteMap.get(color).name + "</div>");
-            }
-            infoHtml += colorNames.join(', ') + ", 点击清除按钮显示全部)";
+        if (filterColor) {
+            infoHtml += "(只显示<div class='colorBlock' style='background:#" + filterColor + ";color:" + getFontColor(filterColor) + ";'>"
+                + paletteMap.get(filterColor).name + "</div>, 点击大图显示全部)";
         }
         //显示大图摘要说明
         $('#largePicInfo').html(infoHtml);
@@ -1199,7 +1159,7 @@
                 rulerX2Ctx.fillText(x + 1, x * (pixelSize + 1) + ~~(pixelSize * 0.5), ~~(pixelSize * 0.5));
             }
         }
-        //纵坐标绘制横竖线和文��
+        //纵坐标绘制横竖线和文字
         rulerY1Ctx.beginPath();
         rulerY2Ctx.beginPath();
         for (let y = 0; y <= height; y++) {//横线
@@ -1248,77 +1208,69 @@
     //刷新图片（修改显示像素或者替换颜色之后，保持当前视角不变进行刷新）
     function refreshImage() {
         showLoadingMask(() => {
-            try {
-                let ctx = fullCanvas.getContext('2d'),
-                    newImageData = ctx.createImageData(paletteImageData);//新建一份原尺寸的透明图形数据
+            let ctx = fullCanvas.getContext('2d'),
+                newImageData = ctx.createImageData(paletteImageData);//新建一份原尺寸的透明图形数据
 
-                //逐像素读取替换调色板后的原图
-                for (let i = 0; i < paletteImageData.data.length; i += 4) {
-                    //如果透明则跳过
-                    let a = paletteImageData.data[i + 3];
-                    if (a == 0) continue;
+            //逐像素读取替换调色板后的原图
+            for (let i = 0; i < paletteImageData.data.length; i += 4) {
+                //如果透明则跳过
+                let a = paletteImageData.data[i + 3];
+                if (a == 0) continue;
 
-                    //获取颜色值
-                    let r = paletteImageData.data[i];
-                    let g = paletteImageData.data[i + 1];
-                    let b = paletteImageData.data[i + 2];
-                    let hex = rgbToHex(r, g, b);
+                //获取颜色值
+                let r = paletteImageData.data[i];
+                let g = paletteImageData.data[i + 1];
+                let b = paletteImageData.data[i + 2];
+                let hex = rgbToHex(r, g, b);
 
-                    //计算坐标
-                    let x = (i / 4) % paletteImageData.width;
-                    let y = ~~((i / 4) / paletteImageData.width);
+                //计算坐标
+                let x = (i / 4) % paletteImageData.width;
+                let y = ~~((i / 4) / paletteImageData.width);
 
-                    //检查像素替换颜色
-                    if (pixelColorReplaceList.has(x + ',' + y)) {
-                        let replaceColor = pixelColorReplaceList.get(x + ',' + y).new;
-                        let replaceColorRgb = hexToRgb(replaceColor);
-                        hex = replaceColor;
-                        r = replaceColorRgb.r;
-                        g = replaceColorRgb.g;
-                        b = replaceColorRgb.b;
-                    }
-                    //检查替换颜色
-                    else if (colorReplaceList.has(hex)) {
-                        let replaceColor = colorReplaceList.get(hex);
-                        let replaceColorRgb = hexToRgb(replaceColor);
-                        hex = replaceColor;
-                        r = replaceColorRgb.r;
-                        g = replaceColorRgb.g;
-                        b = replaceColorRgb.b;
-                    }
-
-                    //如果启用过滤颜色则只显示此颜色
-                    if (filterColors.size > 0 && !filterColors.has(hex)) {
-                        // 将不匹配的颜色调暗
-                        r = Math.floor(r * 0.4); // 调暗系数可以根据需要调整
-                        g = Math.floor(g * 0.4);
-                        b = Math.floor(b * 0.4);
-                    }
-
-                    //设置新图像素点
-                    newImageData.data[i] = r;
-                    newImageData.data[i + 1] = g;
-                    newImageData.data[i + 2] = b;
-                    newImageData.data[i + 3] = 255;//处理后一律变成不透明色
+                //检查像素替换颜色
+                if (pixelColorReplaceList.has(x + ',' + y)) {
+                    let replaceColor = pixelColorReplaceList.get(x + ',' + y).new;
+                    let replaceColorRgb = hexToRgb(replaceColor);
+                    hex = replaceColor;
+                    r = replaceColorRgb.r;
+                    g = replaceColorRgb.g;
+                    b = replaceColorRgb.b;
+                }
+                //检查替换颜色
+                else if (colorReplaceList.has(hex)) {
+                    let replaceColor = colorReplaceList.get(hex);
+                    let replaceColorRgb = hexToRgb(replaceColor);
+                    hex = replaceColor;
+                    r = replaceColorRgb.r;
+                    g = replaceColorRgb.g;
+                    b = replaceColorRgb.b;
                 }
 
-                //绘制过滤替换后的新图
-                ctx.putImageData(newImageData, 0, 0);
+                //如果启用过滤颜色则只显示此颜色
+                if (filterColor && filterColor != hex) continue;
 
-                //将完整图片切成图块
-                sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+                //设置新图像素点
+                newImageData.data[i] = r;
+                newImageData.data[i + 1] = g;
+                newImageData.data[i + 2] = b;
+                newImageData.data[i + 3] = 255;//处理后一律变成不透明色
+            }
 
-                //根据当前显示的是全图或图块显示视图
-                if (!currentSliceImage) {
-                    showFullImageView(true);
-                } else {
-                    if (currentSliceImage.y >= sliceImages.length) currentSliceImage.y = 0;
-                    if (currentSliceImage.x >= sliceImages[0].length) currentSliceImage.x = 0;
-                    showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
-                }
-            } catch (err) {
-                console.error('Error in refreshImage:', err);
-                throw err; // 重新抛出错误以触发 finally
+            //绘制过滤替换后的新图
+            ctx.putImageData(newImageData, 0, 0);
+
+            //将完整图片切成图块
+            sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+
+            //根据当前显示的是全图或图块显示视图
+            if (!currentSliceImage) {
+                showFullImageView(true);
+            }
+            else {
+                //如果修改图块大小导致图块下标越界则归零
+                if (currentSliceImage.y >= sliceImages.length) currentSliceImage.y = 0;
+                if (currentSliceImage.x >= sliceImages[0].length) currentSliceImage.x = 0;
+                showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
             }
         });
     }
@@ -1477,6 +1429,10 @@
 
     //十六进制颜色转rgb数值
     function hexToRgb(hex) {
+        // 如果是8位颜色代码(包含alpha)，只取前6位
+        if(hex.length === 8) {
+            hex = hex.substring(0, 6);
+        }
         let result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
             r: parseInt(result[1], 16),
@@ -1596,22 +1552,11 @@
         if (method) {
             $('#loadingMask').one('show.bs.modal', function (e) {
                 setTimeout(() => {
-                    try {
-                        method();
-                    } catch (err) {
-                        console.error('Error in loading mask:', err);
-                    } finally {
-                        $('#loadingMask').modal('hide');
-                    }
+                    method();
+                    $('#loadingMask').modal('hide');
                 }, 100);
             });
-            
-            // 确保modal显示
-            try {
-                $('#loadingMask').modal('show');
-            } catch (err) {
-                console.error('Error showing loading mask:', err);
-            }
+            $('#loadingMask').modal('show');
         }
     }
 
@@ -1718,7 +1663,7 @@
             Math.pow(deltaLp / (kL * SL), 2) +
             Math.pow(deltaCp / (kC * SC), 2) +
             Math.pow(deltaHp / (kH * SH), 2) +
-            RT * (deltaCp / (kC * SC)) * (deltaCp / (kC * SC)) * (deltaHp / (kH * SH))
+            RT * (deltaCp / (kC * SC)) * (deltaHp / (kH * SH))
         );
         
         return deltaE;
@@ -1835,64 +1780,6 @@
     $('#sortByCode').on('click tap', () => sortColors('code'));
     $('#sortBySimilar').on('click tap', () => sortColors('similar'));
     $('#sortByHue').on('click tap', () => sortColors('hue'));
-
-    // 添加镜像函数
-    function flipImage(direction) {
-        showLoadingMask(() => {
-            try {
-                // 1. 先对原始图片进行镜像处理
-                let ctx = originalCanvas.getContext('2d');
-                let imageData = ctx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
-                let flippedData = ctx.createImageData(originalCanvas.width, originalCanvas.height);
-                
-                for (let y = 0; y < originalCanvas.height; y++) {
-                    for (let x = 0; x < originalCanvas.width; x++) {
-                        let sourcePos = (y * originalCanvas.width + x) * 4;
-                        let targetX = direction === 'horizontal' ? originalCanvas.width - 1 - x : x;
-                        let targetY = direction === 'vertical' ? originalCanvas.height - 1 - y : y;
-                        let targetPos = (targetY * originalCanvas.width + targetX) * 4;
-                        
-                        flippedData.data[targetPos] = imageData.data[sourcePos];         // R
-                        flippedData.data[targetPos + 1] = imageData.data[sourcePos + 1]; // G
-                        flippedData.data[targetPos + 2] = imageData.data[sourcePos + 2]; // B
-                        flippedData.data[targetPos + 3] = imageData.data[sourcePos + 3]; // A
-                    }
-                }
-                
-                ctx.putImageData(flippedData, 0, 0);
-                
-                // 2. 清空所有缓存
-                similarColorCache = new Map();
-                paletteImageData = new Array();
-                sliceImages = new Array();
-                currentSliceImage = null;
-                largeCanvasOffsetX = 0;
-                largeCanvasOffsetY = 0;
-                
-                // 3. 重新生成调色板图像
-                toPaletteColor(originalCanvas, fullCanvas);
-                
-                // 4. 重新生成切片
-                sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
-                
-                // 5. 重新显示完整视图
-                showFullImageView();
-                
-            } catch (err) {
-                console.error('Error in flip image:', err);
-                throw err;
-            }
-        });
-    }
-
-    // 在事件绑定部分添加
-    $('#flipHorizontal').on('click tap', function() {
-        flipImage('horizontal');
-    });
-
-    $('#flipVertical').on('click tap', function() {
-        flipImage('vertical');
-    });
 </script>
 
 </html>
