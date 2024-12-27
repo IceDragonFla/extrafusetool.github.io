@@ -229,6 +229,9 @@
                 <button class="btn btn-outline-primary float-right mx-2" type="button" id="showColorSum">
                     颜色统计
                 </button>
+                <button class="btn btn-outline-primary float-right mx-2" type="button" id="toggleColorCode">
+                    隐藏色号
+                </button>
                 <div class="float-right mx-2" id="brushToolBar">
                     <label id='brushInfo'></label>
                     <button type="button" class="btn btn-danger" id="disableBrushMode">退出</button>
@@ -1169,18 +1172,18 @@
                 if (colorSum.has(hex)) colorSum.set(hex, colorSum.get(hex) + 1);
                 else colorSum.set(hex, 1);
                 
-                // 只在非调暗状态(没有筛选或者是被筛选的颜色)时绘制文字
-                if (!filterColors.size > 0 || filterColors.has(hex)) {
+                // 只在非调暗状态且启用色号显示时绘制文字
+                if ((!filterColors.size || filterColors.has(hex)) && showColorCode) {
                     largeCtx.fillText(color.name, x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
                 }
             }
             else {
-                console.log('Error color: ' + rgbToHex(r, g, b));
+                console.log('Error color: ' + hex);
                 if (colorSum.has('Err')) colorSum.set('Err', colorSum.get('Err') + 1);
                 else colorSum.set('Err', 1);
                 
-                // 错误颜色也只在非调暗状态显示
-                if (!filterColors.size > 0 || filterColors.has(hex)) {
+                // 只在没有筛选且启用色号显示时显示错误标记
+                if (!filterColors.size && showColorCode) {
                     largeCtx.fillText('Err', x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
                 }
             }
@@ -1495,7 +1498,7 @@
         for (let [oldColor, newColor] of colorReplaceList) {
             if (newColor == fromColor) colorReplaceList.set(oldColor, toColor);
         }
-        //遍历像素替换列表，将原先目标颜色为fromColor的也换成toColor
+        //遍��像素替换列表，将原先目标颜色为fromColor的也换成toColor
         for (let [position, colors] of pixelColorReplaceList) {
             if (colors.new == fromColor) pixelColorReplaceList.set(position, { old: colors.old, new: toColor });
         }
@@ -1980,7 +1983,7 @@
         }
         $('#colorSelector').html(colorSelectorHtml);
         
-        // 重新绑定点击事件
+        // 重新绑定点击���件
         bindColorSelectorEvents();
     }
 
@@ -2012,6 +2015,22 @@
     $('#sortByCode').on('click tap', () => sortColors('code'));
     $('#sortBySimilar').on('click tap', () => sortColors('similar'));
     $('#sortByHue').on('click tap', () => sortColors('hue'));
+
+    // 添加一个全局变量来记录色号显示状态
+    var showColorCode = true; // 默认显示色号
+
+    // 添加按钮点击事件处理
+    $('#toggleColorCode').on('click tap', function() {
+        showColorCode = !showColorCode; // 切换状态
+        $(this).text(showColorCode ? '隐藏色号' : '显示色号');
+        
+        // 重新显示图像
+        if (!currentSliceImage) {
+            showFullImageView(true);
+        } else {
+            showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
+        }
+    });
 </script>
 
 </html>
