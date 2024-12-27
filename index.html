@@ -1344,7 +1344,7 @@
         let viewCtx = viewCanvas.getContext('2d'),
             rulerX1Ctx = rulerX1Canvas.getContext('2d'), rulerX2Ctx = rulerX2Canvas.getContext('2d'),
             rulerY1Ctx = rulerY1Canvas.getContext('2d'), rulerY2Ctx = rulerY2Canvas.getContext('2d');
-        //绘制上横标尺
+        //绘制上�����标尺
         viewCtx.putImageData(rulerX1Ctx.getImageData(largeCanvasOffsetX, 0, viewCanvas.width - 2 * (pixelSize + 1), pixelSize + 1), pixelSize + 1, 0);
         //绘制下横标尺
         viewCtx.putImageData(rulerX2Ctx.getImageData(largeCanvasOffsetX, 0, viewCanvas.width - 2 * (pixelSize + 1), pixelSize + 1), pixelSize + 1, viewCanvas.height - pixelSize - 1);
@@ -1634,12 +1634,43 @@
         let lab1 = rgbToLab(r1, g1, b1);
         let lab2 = rgbToLab(r2, g2, b2);
         
-        // 计算LAB空间中的欧氏距离
-        return Math.sqrt(
+        // 1. 计算LAB欧氏距离
+        const labDistance = Math.sqrt(
             Math.pow(lab2.l - lab1.l, 2) + 
             Math.pow(lab2.a - lab1.a, 2) + 
             Math.pow(lab2.b - lab1.b, 2)
         );
+        
+        // 2. 计算CIEDE2000距离
+        const ciede2000Distance = CIEDE2000(lab1, lab2);
+        
+        // 3. 计算LAB空间中的曼哈顿距离，加入亮度补偿
+        const manhattanDistance = (
+            Math.abs(lab2.l - lab1.l) * 1.5 + // 增加亮度分量的权重
+            Math.abs(lab2.a - lab1.a) + 
+            Math.abs(lab2.b - lab1.b)
+        );
+        
+        // 调整权重分配
+        const weights = {
+            ciede2000: 0.4,  // 增加CIEDE2000权重
+            lab: 0.4,        // 增加LAB欧氏距离权重
+            manhattan: 0.2   // 降低曼哈顿距离权重
+        };
+        
+        // 归一化处理
+        const normalizedManhattan = manhattanDistance / Math.sqrt(3);
+        
+        // 添加亮度偏好因子
+        const brightnessFactor = 1.0 + 
+            (lab1.l < 50 ? 0.2 : 0) +  // 当原始颜色较暗时
+            (lab2.l < 30 ? 0.3 : 0);   // 惩罚过暗的匹配结果
+        
+        return (
+            weights.ciede2000 * ciede2000Distance + 
+            weights.lab * labDistance + 
+            weights.manhattan * normalizedManhattan
+        ) * brightnessFactor;
     }
 
     // 在 colorDistance 函数之前添加 rgbToLab 函数
@@ -1847,25 +1878,48 @@
         return deltaE;
     }
 
-    // 修改颜色距离计算函数，结合LAB欧氏距离和CIEDE2000
+    // 修改颜色距离计算函数，结合LAB欧氏距离、CIEDE2000和曼哈顿距离
     function colorDistance(r1, g1, b1, r2, g2, b2) {
         let lab1 = rgbToLab(r1, g1, b1);
         let lab2 = rgbToLab(r2, g2, b2);
         
-        // 计算LAB欧氏距离
+        // 1. 计算LAB欧氏距离
         const labDistance = Math.sqrt(
             Math.pow(lab2.l - lab1.l, 2) + 
             Math.pow(lab2.a - lab1.a, 2) + 
             Math.pow(lab2.b - lab1.b, 2)
         );
         
-        // 计算CIEDE2000距离
+        // 2. 计算CIEDE2000距离
         const ciede2000Distance = CIEDE2000(lab1, lab2);
         
-        // 结合两种距离，使用加权平均
-        // CIEDE2000权重更高因为它更准确
-        const weight = 0.5; // CIEDE2000的权重
-        return (weight * ciede2000Distance + (1 - weight) * labDistance);
+        // 3. 计算LAB空间中的曼哈顿距离，加入亮度补偿
+        const manhattanDistance = (
+            Math.abs(lab2.l - lab1.l) * 1.5 + // 增加亮度分量的权重
+            Math.abs(lab2.a - lab1.a) + 
+            Math.abs(lab2.b - lab1.b)
+        );
+        
+        // 调整权重分配
+        const weights = {
+            ciede2000: 0.5,  // 增加CIEDE2000权重
+            lab: 0.4,        // 增加LAB欧氏距离权重
+            manhattan: 0.1   // 降低曼哈顿距离权重
+        };
+        
+        // 归一化处理
+        const normalizedManhattan = manhattanDistance / Math.sqrt(3);
+        
+        // 添加亮度偏好因子
+        const brightnessFactor = 0.7 + 
+            (lab1.l < 50 ? 0.2 : 0) +  // 当原始颜色较暗时
+            (lab2.l < 30 ? 0.3 : 0);   // 惩罚过暗的匹配结果
+        
+        return (
+            weights.ciede2000 * ciede2000Distance + 
+            weights.lab * labDistance + 
+            weights.manhattan * normalizedManhattan
+        ) * brightnessFactor;
     }
 
     // 修改颜色统计排序部分
