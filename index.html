@@ -236,6 +236,9 @@
                     <label id='brushInfo'></label>
                     <button type="button" class="btn btn-danger" id="disableBrushMode">退出</button>
                 </div>
+                <button class="btn btn-outline-primary float-right mx-2" type="button" data-toggle="modal" data-target="#shortageColorsModal">
+                    缺货色号管理
+                </button>
             </div>
             <div class="card-body" style='padding: 0;'>
                 <canvas id="viewCanvas"></canvas>
@@ -384,6 +387,37 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary" id="copyColorSum">复制统计结果</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="shortageColorsModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">缺货色号管理</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>当前缺货色号列表：</label>
+                        <div id="shortageColorList" class="mb-3">
+                            <!-- 这里会动态填充缺货色号 -->
+                        </div>
+                        <div class="input-group">
+                            <select class="form-control" id="colorToAdd">
+                                <!-- 这里会动态填充可选色号 -->
+                            </select>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="addShortageColor">添加</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="saveShortageColors">保存</button>
                 </div>
             </div>
         </div>
@@ -1983,7 +2017,7 @@
         }
         $('#colorSelector').html(colorSelectorHtml);
         
-        // 重新绑定点击���件
+        // 重新绑定点击事件
         bindColorSelectorEvents();
     }
 
@@ -2100,6 +2134,123 @@
 
     $('#flipVertical').on('click tap', function() {
         flipImage('vertical');
+    });
+
+    // 3. 添加相关JavaScript代码
+    // 在全局变量声明部分添加
+    var shortageColors = new Set(); // 存储缺货色号
+
+    // 在其他函数定义后添加
+    // 更新缺货色号列表显示
+    function updateShortageColorList() {
+        let html = '';
+        for (let colorName of shortageColors) {
+            let color = Array.from(paletteMap.values()).find(c => c.name === colorName);
+            if (color) {
+                let hex = rgbToHex(color.r, color.g, color.b);
+                html += `
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="colorBlock" style="background:#${hex};color:${getFontColor(color.r, color.g, color.b)};">
+                            ${colorName}
+                        </div>
+                        <button class="btn btn-sm btn-danger ml-2" onclick="removeShortageColor('${colorName}')">删除</button>
+                    </div>
+                `;
+            }
+        }
+        $('#shortageColorList').html(html);
+    }
+
+    // 更新可选色号下拉列表
+    function updateColorSelector() {
+        let html = '<option value="">选择色号...</option>';
+        for (let color of paletteMap.values()) {
+            if (!shortageColors.has(color.name)) {
+                html += `<option value="${color.name}">${color.name}</option>`;
+            }
+        }
+        $('#colorToAdd').html(html);
+    }
+
+    // 删除缺货色号
+    function removeShortageColor(colorName) {
+        shortageColors.delete(colorName);
+        updateShortageColorList();
+        updateColorSelector();
+        // 保存到localStorage
+        localStorage.setItem('shortageColors', JSON.stringify(Array.from(shortageColors)));
+    }
+
+    // 修改findSimilarColor函数，跳过缺货色号
+    function findSimilarColor(r, g, b) {
+        let hex = rgbToHex(r, g, b);
+        // 首先查找缓存
+        if (similarColorCache.has(hex)) {
+            return similarColorCache.get(hex);
+        }
+
+        let minDistance = 584970;
+        let minColor = null;
+        for (let color of paletteMap.values()) {
+            // 跳过缺货色号
+            if (shortageColors.has(color.name)) {
+                continue;
+            }
+            let distance = colorDistance(color.r, color.g, color.b, r, g, b);
+            if (distance == 0) {
+                similarColorCache.set(hex, color);
+                return color;
+            }
+            if (distance < minDistance) {
+                minDistance = distance;
+                minColor = color;
+            }
+        }
+
+        similarColorCache.set(hex, minColor);
+        return minColor;
+    }
+
+    // 在页面加载完成后添加事件绑定
+    $(document).ready(function() {
+        // 从localStorage加载缺货色号
+        let savedShortageColors = localStorage.getItem('shortageColors');
+        if (savedShortageColors) {
+            shortageColors = new Set(JSON.parse(savedShortageColors));
+        }
+
+        // 显示模态窗口时更新列表
+        $('#shortageColorsModal').on('show.bs.modal', function() {
+            updateShortageColorList();
+            updateColorSelector();
+        });
+
+        // 添加缺货色号
+        $('#addShortageColor').on('click', function() {
+            let colorName = $('#colorToAdd').val();
+            if (colorName) {
+                shortageColors.add(colorName);
+                updateShortageColorList();
+                updateColorSelector();
+                $('#colorToAdd').val('');
+                // 保存到localStorage
+                localStorage.setItem('shortageColors', JSON.stringify(Array.from(shortageColors)));
+            }
+        });
+
+        // 保存按钮点击事件
+        $('#saveShortageColors').on('click', function() {
+            $('#shortageColorsModal').modal('hide');
+            // 清空颜色缓存并刷新图像
+            similarColorCache = new Map();
+            if (originalCanvas) {
+                showLoadingMask(() => {
+                    toPaletteColor(originalCanvas, fullCanvas);
+                    sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+                    showFullImageView();
+                });
+            }
+        });
     });
 </script>
 
