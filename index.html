@@ -1612,8 +1612,14 @@
     function generatePaletteMap(palette) {
         let map = new Map();
         for (let i = 0; i < palette.length; i++) {
-            let rgb = hexToRgb(palette[i].color);
-            map.set(palette[i].color, {
+            // 将颜色代码转换为小写
+            let color = palette[i].color.toLowerCase();
+            let rgb = hexToRgb(color);
+            if (!rgb) {
+                console.error(`Invalid color code: ${palette[i].color} for ${palette[i].name}`);
+                continue;
+            }
+            map.set(color, {
                 name: palette[i].name,
                 r: rgb.r,
                 g: rgb.g,
@@ -1639,6 +1645,8 @@
 
     //十六进制颜色转rgb数值
     function hexToRgb(hex) {
+        // 将颜色代码转换为小写
+        hex = hex.toLowerCase();
         let result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
             r: parseInt(result[1], 16),
