@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>拼豆辅助工具</title>
-    <link rel="shortcut icon" href="/image/favicon.png" type="image/png">
+    <link rel="shortcut icon" href="image/favicon.png" type="image/png">
     <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
         body {
@@ -56,6 +56,24 @@
         a:hover {
             text-decoration: none;
         }
+
+        /* 已有样式... */
+        .changelog-content {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .changelog-content h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .changelog-content h2 {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            color: #007bff;
+        }
+        .changelog-content li {
+            margin-bottom: 0.5rem;
+        }
     </style>
 
     <script src="js/palette.v4.js"></script>
@@ -63,6 +81,7 @@
     <script src="js/popper.min.js"></script>
     <script src='https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/bootstrap.min.js'></script>
     <script src="js/boxsets.js"></script>
+    <script src="js/changelog.js"></script>
 </head>
 
 <body>
@@ -72,6 +91,9 @@
             <div class="float-right mx-2" class='align-top'>
                 <img src='image/help.png' style='height: 2rem;' data-toggle="modal" data-target="#docModal"
                     title="帮助文档" />
+                <button class="btn btn-sm btn-outline-info mx-2" id="showChangelog" title="查看更新日志">
+                    更新日志
+                </button>
                 <span class="h6">中文/<a href="/index-en.html">Eng</a></span>
             </div>
         </div>
@@ -2294,6 +2316,17 @@
 
     // 在页面加载完成后添加事件绑定
     $(document).ready(function() {
+        // 初始化更新日志管理器
+        const changelogManager = new ChangelogManager();
+        
+        // 绑定更新日志按钮点击事件
+        $('#showChangelog').on('click', function() {
+            changelogManager.showChangelog();
+        });
+        
+        // 检查是否需要显示更新日志
+        changelogManager.showChangelogIfNeeded();
+        
         // 从localStorage加载缺货色号
         let savedShortageColors = localStorage.getItem('shortageColors');
         if (savedShortageColors) {
