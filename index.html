@@ -4,57 +4,153 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>拼豆辅助工具</title>
+    <title>拼豆辅助工具-Extra</title>
     <link rel="shortcut icon" href="image/favicon.png" type="image/png">
     <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
+        /* 基础布局 */
         body {
             margin: 0;
             overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5;
+        }
+
+        .tool-container {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* 顶部工具栏 */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        /* 工具按钮样式 */
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        .btn-outline-primary {
+            color: #1890ff;
+            border-color: #1890ff;
+        }
+
+        .btn-outline-primary:hover {
+            background: #1890ff;
+            color: #fff;
+        }
+
+        .btn-outline-danger {
+            color: #ff4d4f;
+            border-color: #ff4d4f;
+        }
+
+        .btn-outline-danger:hover {
+            background: #ff4d4f;
+            color: #fff;
+        }
+
+        /* 主内容区域 */
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: none;
+            margin-bottom: 20px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* 画布容器 */
+        .canvas-container {
+            background: #fff;
+            border-radius: 4px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         canvas {
-            border: 1px solid #060606;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
         }
 
-        #mainContent {
-            display: none;
-        }
-
+        /* 颜色块样式 */
         .colorBlock {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            text-align: center;
-            line-height: 24px;
-            margin: 2px;
-            vertical-align: top;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            margin: 3px;
+            border-radius: 4px;
             font: 11px monospace;
-            border: 1px solid #060606;
+            border: 1px solid #d9d9d9;
+            transition: all 0.3s;
         }
 
-        .pointer {
-            cursor: pointer;
+        .colorBlock:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
 
         .colorBlock.selected {
-            border: 3px solid #ff0000;
+            border: 2px solid #1890ff;
+            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
         }
 
-        td {
-            text-align: center;
-            vertical-align: middle;
+        /* 下拉菜单样式 */
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            border-radius: 4px;
         }
 
-        .mask {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        .dropdown-item {
+            padding: 8px 16px;
+            transition: all 0.3s;
         }
 
-        a:hover {
-            text-decoration: none;
+        .dropdown-item:hover {
+            background: #f5f5f5;
+        }
+
+        /* 表单控件样式 */
+        .form-control {
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            padding: 8px 12px;
+            transition: all 0.3s;
+        }
+
+        .form-control:hover {
+            border-color: #40a9ff;
+        }
+
+        .form-control:focus {
+            border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
         }
 
         /* 已有样式... */
@@ -73,6 +169,35 @@
         }
         .changelog-content li {
             margin-bottom: 0.5rem;
+        }
+
+        /* 图片卡片容器样式 */
+        .row {
+            margin: 0;  /* 移除默认外边距 */
+        }
+        
+        .row > .col {
+            flex: 0 0 33.333%;  /* 固定宽度为1/3 */
+            max-width: 33.333%;
+            padding: 10px;  /* 统一内边距 */
+        }
+        
+        /* 卡片内容样式 */
+        .card {
+            height: 100%;  /* 让所有卡片高度一致 */
+        }
+        
+        /* 画布容器样式 */
+        canvas {
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        
+        /* 切片表格容器样式 */
+        #sliceImageContainer {
+            max-width: 100%;
+            overflow: auto;
         }
     </style>
 
@@ -229,55 +354,57 @@
         <div class="card">
             <div class="card-header">
                 <label id='largePicInfo' class="col-form-label"></label>
-                <div class="dropdown float-right mx-2">
-                    <button class="btn btn-outline-danger dropdown-toggle" type="button" id="dropdownColorReplace"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        颜色替换
+                <div class="button-group float-right">
+                    <button class="btn btn-outline-primary mx-2" type="button" data-toggle="modal" data-target="#shortageColorsModal">
+                        缺货色号管理
                     </button>
-                    <div class="dropdown-menu dropdown-menu-right overflow-auto" aria-labelledby="dropdownColorReplace"
-                        style="max-height:800px;">
-                        <div class="px-4 py-3">
-                            <button type="button" class="btn btn-danger btn-sm" id="removeAllColorReplace">全部删除</button>
-                            <button type="button" class="btn btn-primary btn-sm"
-                                id="showColorReplaceJsonModel">导入/导出</button>
-                            <div class="dropdown-divider"></div>
-                            <h6 class="dropdown-header">全体颜色替换列表</h6>
-                            <table class="table table-sm" style="max-width: 180px;">
-                                <thead>
-                                    <th style="width: 36px;">旧</th>
-                                    <th style="width: 36px;">新</th>
-                                    <th></th>
-                                </thead>
-                                <tbody id="colorReplaceTable">
-                                </tbody>
-                            </table>
-                            <h6 class="dropdown-header">单个像素颜色替换列表</h6>
-                            <table class="table table-sm" style="min-width: 220px;">
-                                <thead>
-                                    <th>坐标</th>
-                                    <th style="width: 36px;">旧</th>
-                                    <th style="width: 36px;">新</th>
-                                    <th></th>
-                                </thead>
-                                <tbody id="pixelColorReplaceTable">
-                                </tbody>
-                            </table>
+                    <button class="btn btn-outline-primary mx-2" type="button" id="toggleColorCode">
+                        隐藏色号
+                    </button>
+                    <button class="btn btn-outline-primary mx-2" type="button" id="showColorSum">
+                        颜色统计
+                    </button>
+                    <div class="dropdown d-inline-block mx-2">
+                        <button class="btn btn-outline-danger dropdown-toggle" type="button" id="dropdownColorReplace"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            颜色替换
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right overflow-auto" aria-labelledby="dropdownColorReplace"
+                            style="max-height:800px;">
+                            <div class="px-4 py-3">
+                                <button type="button" class="btn btn-danger btn-sm" id="removeAllColorReplace">全部删除</button>
+                                <button type="button" class="btn btn-primary btn-sm"
+                                    id="showColorReplaceJsonModel">导入/导出</button>
+                                <div class="dropdown-divider"></div>
+                                <h6 class="dropdown-header">全体颜色替换列表</h6>
+                                <table class="table table-sm" style="max-width: 180px;">
+                                    <thead>
+                                        <th style="width: 36px;">旧</th>
+                                        <th style="width: 36px;">新</th>
+                                        <th></th>
+                                    </thead>
+                                    <tbody id="colorReplaceTable">
+                                    </tbody>
+                                </table>
+                                <h6 class="dropdown-header">单个像素颜色替换列表</h6>
+                                <table class="table table-sm" style="min-width: 220px;">
+                                    <thead>
+                                        <th>坐标</th>
+                                        <th style="width: 36px;">旧</th>
+                                        <th style="width: 36px;">新</th>
+                                        <th></th>
+                                    </thead>
+                                    <tbody id="pixelColorReplaceTable">
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-outline-primary float-right mx-2" type="button" id="showColorSum">
-                    颜色统计
-                </button>
-                <button class="btn btn-outline-primary float-right mx-2" type="button" id="toggleColorCode">
-                    隐藏色号
-                </button>
                 <div class="float-right mx-2" id="brushToolBar">
                     <label id='brushInfo'></label>
                     <button type="button" class="btn btn-danger" id="disableBrushMode">退出</button>
                 </div>
-                <button class="btn btn-outline-primary float-right mx-2" type="button" data-toggle="modal" data-target="#shortageColorsModal">
-                    缺货色号管理
-                </button>
             </div>
             <div class="card-body" style='padding: 0;'>
                 <canvas id="viewCanvas"></canvas>
