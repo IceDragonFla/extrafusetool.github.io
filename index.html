@@ -346,6 +346,47 @@
             color: #666;
             text-align: center;
         }
+
+        /* 套盒选择器样式 */
+        #boxSetCheckboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 0;
+        }
+        
+        .box-set-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fff;
+        }
+        
+        .box-set-item:hover {
+            border-color: #40a9ff;
+            background: #f0f7ff;
+        }
+        
+        .box-set-item.selected {
+            border-color: #1890ff;
+            background: #e6f7ff;
+        }
+        
+        .box-set-item input[type="checkbox"] {
+            margin-right: 4px;
+        }
+        
+        .box-set-item label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
     </style>
 
     <script src="js/palette.v4.js"></script>
@@ -784,10 +825,10 @@
         if (boxSets[brand]) {
             for (let [code, info] of Object.entries(boxSets[brand])) {
                 $boxSetCheckboxes.append(`
-                    <div class="custom-control custom-checkbox">
-                        <input type="checkbox" class="custom-control-input box-set-checkbox" 
+                    <div class="box-set-item">
+                        <input type="checkbox" class="box-set-checkbox" 
                                id="boxSet_${code}" value="${code}">
-                        <label class="custom-control-label" for="boxSet_${code}">
+                        <label for="boxSet_${code}">
                             ${info.name} (${code})
                         </label>
                     </div>
@@ -803,10 +844,14 @@
         // 重新绑定复选框事件
         $('.box-set-checkbox').on('change', function() {
             let boxSetCode = $(this).val();
+            let $item = $(this).closest('.box-set-item');
+            
             if (this.checked) {
                 selectedBoxSets.add(boxSetCode);
+                $item.addClass('selected');
             } else {
                 selectedBoxSets.delete(boxSetCode);
+                $item.removeClass('selected');
             }
             updatePaletteAndRefresh();
         });
