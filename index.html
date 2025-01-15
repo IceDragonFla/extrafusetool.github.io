@@ -819,6 +819,10 @@
     var isBoxSetMode = false;
     var selectedBoxSets = new Set(); // 存储选中的套盒
 
+    // 在全局变量声明部分添加
+    var currentSortMethod = 'count'; // 默认按数量排序
+    var customSortOrder = []; // 存储自定义排序顺序
+
     // 修改更新套盒选择器的函数
     function updateBoxSetSelector() {
         let brand = $('#paletteSelect').val();
@@ -1650,14 +1654,24 @@
         showPartView();
 
         //按颜色数量递减排序并显示在颜色统计框
-        let colorSumSorted = new Map([...colorSum.entries()].sort(function (a, b) {
-            return b[1] - a[1];
-        }));
+        let colorSumSorted = sortColorSum(colorSum, currentSortMethod);
 
         let sumHtml = `
             <div class="color-sum-controls">
                 <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColors">全选</button>
                 <button type="button" class="btn btn-sm btn-outline-danger" id="clearColorFilter">清除</button>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" 
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        排序方式
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item ${currentSortMethod === 'count' ? 'active' : ''}" href="#" data-sort="count">按数量排序</a>
+                        <a class="dropdown-item ${currentSortMethod === 'code' ? 'active' : ''}" href="#" data-sort="code">按颜色排序</a>
+                        <a class="dropdown-item ${currentSortMethod === 'boxset' ? 'active' : ''}" href="#" data-sort="boxset">按套盒排序</a>
+                        <a class="dropdown-item ${currentSortMethod === 'custom' ? 'active' : ''}" href="#" data-sort="custom">自定义顺序</a>
+                    </div>
+                </div>
                 <span class="ml-auto">总计 ${totolBeadCount} 颗</span>
             </div>
             <div class="color-sum-grid">`;
@@ -1751,6 +1765,16 @@
         }
         //显示大图摘要说明
         $('#largePicInfo').html(infoHtml);
+
+        // 重新绑定排序事件
+        $('.dropdown-item[data-sort]').off('click').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();  // 阻止事件冒泡
+            $('.dropdown-item[data-sort]').removeClass('active');
+            $(this).addClass('active');
+            currentSortMethod = $(this).data('sort');
+            showImageView(imageData, true);  // 重新显示颜色统计
+        });
     }
 
     //将大图的一部分绘制到视图
@@ -2797,6 +2821,137 @@
                 refreshImage();
             }
         }
+    });
+
+    // 添加排序相关函数
+    function sortColorSum(colors, method) {
+        switch (method) {
+            case 'count':
+                // 按数量排序（降序）
+                return new Map([...colors.entries()].sort((a, b) => b[1] - a[1]));
+                
+            case 'code':
+                // 按颜色代码排序
+                return new Map([...colors.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+                
+            case 'boxset':
+                // 按套盒排序
+                return new Map([...colors.entries()].sort((a, b) => {
+                    let colorA = paletteMap.get(a[0]);
+                    let colorB = paletteMap.get(b[0]);
+                    // 找到颜色所属的套盒
+                    let boxsetA = findColorBoxset(colorA.name);
+                    let boxsetB = findColorBoxset(colorB.name);
+                    // 先按套盒排序，同套盒内按色号排序
+                    return boxsetA.localeCompare(boxsetB) || colorA.name.localeCompare(colorB.name);
+                }));
+                
+            case 'custom':
+                // 按自定义顺序排序
+                if (customSortOrder.length === 0) {
+                    // 如果没有自定义顺序，打开自定义对话框
+                    showCustomSortDialog(colors);
+                    return colors;
+                }
+                return new Map([...colors.entries()].sort((a, b) => {
+                    let indexA = customSortOrder.indexOf(a[0]);
+                    let indexB = customSortOrder.indexOf(b[0]);
+                    return (indexA === -1 ? Infinity : indexA) - (indexB === -1 ? Infinity : indexB);
+                }));
+                
+            default:
+                return colors;
+        }
+    }
+
+    // 查找颜色所属的套盒
+    function findColorBoxset(colorName) {
+        let brand = $('#paletteSelect').val();
+        if (!boxSets[brand]) return 'Z'; // 不在任何套盒中
+        
+        for (let [boxsetCode, boxset] of Object.entries(boxSets[brand])) {
+            if (boxset.colors.includes(colorName)) {
+                return boxsetCode;
+            }
+        }
+        return 'Z'; // 不在任何套盒中
+    }
+
+    // 显示自定义排序对话框
+    function showCustomSortDialog(colors) {
+        let colorList = [...colors.keys()].map(color => {
+            let info = paletteMap.get(color);
+            return { code: color, name: info.name };
+        });
+        
+        let html = `
+            <div class="modal" id="customSortModal">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">自定义颜色顺序</h5>
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">拖动颜色块调整顺序</div>
+                            <div id="sortableColors" class="d-flex flex-wrap gap-2">
+                                ${colorList.map(color => `
+                                    <div class="color-sort-item" data-color="${color.code}">
+                                        <div class="colorBlock" style="background:#${color.code};color:${getFontColor(color.code)}">
+                                            ${color.name}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" id="saveCustomSort">保存顺序</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(html);
+        
+        // 初始化拖拽排序
+        $('#sortableColors').sortable({
+            placeholder: 'color-sort-placeholder'
+        });
+        
+        // 保存自定义顺序
+        $('#saveCustomSort').on('click', function() {
+            customSortOrder = $('#sortableColors .color-sort-item').map(function() {
+                return $(this).data('color');
+            }).get();
+            
+            $('#customSortModal').modal('hide');
+            updateColorSumDisplay();
+        });
+        
+        $('#customSortModal').modal('show');
+        
+        // 模态框关闭后删除
+        $('#customSortModal').on('hidden.bs.modal', function() {
+            $(this).remove();
+        });
+    }
+
+    // 修改颜色统计显示函数
+    function updateColorSumDisplay() {
+        let colorSumSorted = sortColorSum(colorSum, currentSortMethod);
+        
+        // ... 其他显示代码保持不变 ...
+    }
+
+    // 添加排序方式切换事件
+    $('.dropdown-item[data-sort]').on('click', function(e) {
+        e.preventDefault();
+        $('.dropdown-item[data-sort]').removeClass('active');
+        $(this).addClass('active');
+        currentSortMethod = $(this).data('sort');
+        updateColorSumDisplay();
     });
 </script>
 
