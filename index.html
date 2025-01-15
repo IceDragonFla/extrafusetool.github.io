@@ -1635,15 +1635,17 @@
         // 绑定颜色块点击事件
         $('.color-sum-block').on('click', function(e) {
             e.preventDefault();
-            let color = $(this).data('color');
+            let colorKey = String($(this).data('color')); // 确保是字符串类型
+            // 从 colorKey 中提取实际的颜色代码
+            let color = colorKey.startsWith('color_') ? colorKey.substring(6) : colorKey;
             
             // 如果按住 Ctrl 键（Mac 上是 Command 键）
             if (e.ctrlKey || e.metaKey) {
                 $(this).toggleClass('selected');
                 if ($(this).hasClass('selected')) {
-                    filterColors.add(color);
+                    filterColors.add(colorKey);
                 } else {
-                    filterColors.delete(color);
+                    filterColors.delete(colorKey);
                 }
             } else {
                 // 如果没有按住 Ctrl/Command 键，且点击的是已选中的颜色，则清除所有选择
@@ -1655,7 +1657,7 @@
                     $('.color-sum-block').removeClass('selected');
                     $(this).addClass('selected');
                     filterColors.clear();
-                    filterColors.add(color);
+                    filterColors.add(colorKey);
                 }
             }
             
