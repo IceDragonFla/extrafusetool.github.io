@@ -612,7 +612,10 @@
                     <div>
                         <div id="colorInfo"> </div>
                         <hr />
-                        <button type="button" class="btn btn-primary" id='showSingleColor'>只显示此颜色</button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-primary" id='showSingleColor'>只显示此颜色</button>
+                            <button type="button" class="btn btn-danger" id='removeAllColor'>删除所有此颜色</button>
+                        </div>
                         <hr />
                         <strong>颜色替换：</strong>
                         <div id="colorSelector">
@@ -2765,6 +2768,35 @@
         
         // 初始化套盒选择器
         updateBoxSetSelector();
+    });
+
+    // 在其他事件绑定代码附近添加
+    $('#removeAllColor').on('click tap', function() {
+        if (selectedPixel) {
+            let colorToRemove = selectedPixel.color;
+            let colorName = selectedPixel.name;
+            
+            // 确认对话框
+            if (confirm(`确定要删除所有 ${colorName} 色吗？此操作不可撤销。`)) {
+                // 遍历图像所有像素
+                for (let i = 0; i < paletteImageData.data.length; i += 4) {
+                    let r = paletteImageData.data[i];
+                    let g = paletteImageData.data[i + 1];
+                    let b = paletteImageData.data[i + 2];
+                    let hex = rgbToHex(r, g, b).toLowerCase();
+                    
+                    // 如果找到相同颜色
+                    if (hex === colorToRemove) {
+                        // 将该像素设为透明
+                        paletteImageData.data[i + 3] = 0;
+                    }
+                }
+                
+                // 刷新图像显示
+                $('#colorModal').modal('hide');
+                refreshImage();
+            }
+        }
     });
 </script>
 
