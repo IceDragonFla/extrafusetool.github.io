@@ -199,6 +199,153 @@
             max-width: 100%;
             overflow: auto;
         }
+
+        /* 缺货色号管理样式 */
+        #shortageColorList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 0;
+        }
+        
+        .shortage-color-item {
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .shortage-color-item .colorBlock {
+            margin: 0;
+        }
+        
+        .shortage-color-item .remove-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .shortage-color-item:hover .remove-btn {
+            display: flex;
+        }
+        
+        .shortage-color-item .remove-btn:hover {
+            background: rgb(220, 53, 69);
+            transform: scale(1.1);
+        }
+
+        /* 颜色统计样式 */
+        #colorSumTable {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+        }
+        
+        .color-sum-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .color-sum-block {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: 11px monospace;
+        }
+        
+        .color-sum-block:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        
+        .color-sum-block.selected {
+            border: 2px solid #1890ff;
+            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+        }
+        
+        .color-sum-count {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .color-sum-controls {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* 颜色统计样式 */
+        .color-sum-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .color-sum-controls {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+
+        .color-sum-controls .ml-auto {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .color-sum-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 32px;
+        }
+
+        .color-sum-block {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: 11px monospace;
+            position: relative;
+        }
+
+        .color-sum-count {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
     </style>
 
     <script src="js/palette.v4.js"></script>
@@ -539,17 +686,9 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th style="width: 36px;">颜色</th>
-                                <th>数量</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="colorSumTable">
-                        </tbody>
-                    </table>
+                    <div id="colorSumTable">
+                        <!-- 这里会动态填充颜色统计内容 -->
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary" id="copyColorSum">复制统计结果</button>
@@ -1406,7 +1545,7 @@
             let r = imageData.data[i];
             let g = imageData.data[i + 1];
             let b = imageData.data[i + 2];
-            let hex = rgbToHex(r, g, b);
+            let hex = rgbToHex(r, g, b).toLowerCase(); // 确保颜色代码为小写
 
             //计算坐标
             let x = (i / 4) % imageData.width;
@@ -1415,8 +1554,16 @@
 
             totolBeadCount++;
 
+            // 如果启用了颜色过滤，对未选中的颜色进行暗化处理
+            if (filterColors.size > 0 && !filterColors.has(hex)) {
+                // 将颜色调暗
+                r = Math.floor(r * 0.3);
+                g = Math.floor(g * 0.3);
+                b = Math.floor(b * 0.3);
+            }
+
             //绘制大像素块
-            largeCtx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+            largeCtx.fillStyle = `rgb(${r},${g},${b})`;
             largeCtx.fillRect(x * (pixelSize + 1), y * (pixelSize + 1), pixelSize, pixelSize);
 
             //写文字
@@ -1428,8 +1575,8 @@
                 if (colorSum.has(hex)) colorSum.set(hex, colorSum.get(hex) + 1);
                 else colorSum.set(hex, 1);
                 
-                // 只在非调暗状态且启用色号显示时绘制文字
-                if ((!filterColors.size || filterColors.has(hex)) && showColorCode) {
+                // 只在启用色号显示时绘制文字，并且只在选中颜色或没有过滤时显示
+                if (showColorCode && (!filterColors.size || filterColors.has(hex))) {
                     largeCtx.fillText(color.name, x * (pixelSize + 1) + ~~(pixelSize * 0.5), y * (pixelSize + 1) + ~~(pixelSize * 0.5));
                 }
             }
@@ -1458,32 +1605,74 @@
         let colorSumSorted = new Map([...colorSum.entries()].sort(function (a, b) {
             return b[1] - a[1];
         }));
-        let sumHtml = '<tr class="table-info"><td><button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColors">全选</button></td><td>合计</td><td>' + totolBeadCount + '</td><td><button type="button" class="btn btn-sm btn-outline-danger" id="clearColorFilter">清除</button></td></tr>';
+
+        let sumHtml = `
+            <div class="color-sum-controls">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColors">全选</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="clearColorFilter">清除</button>
+                <span class="ml-auto">总计 ${totolBeadCount} 颗</span>
+            </div>
+            <div class="color-sum-grid">`;
+
         for (let [color, count] of colorSumSorted) {
-            sumHtml += '<tr><td><input type="checkbox" class="color-filter-checkbox" value="' + color + '"' + 
-                (filterColors.has(color) ? ' checked' : '') + '></td>' +
-                '<td style="background:#' + color + ';color:' + getFontColor(color) + ';">' + 
-                paletteMap.get(color).name + '</td><td>' + count + '</td><td></td></tr>';
+            if (color === 'Err') continue; // 跳过错误颜色
+            sumHtml += `
+                <div class="color-sum-item">
+                    <div class="color-sum-block ${filterColors.has(color) ? 'selected' : ''}" 
+                         data-color="${color}"
+                         style="background:#${color};color:${getFontColor(color)};"
+                         title="${paletteMap.get(color).name}">
+                        ${paletteMap.get(color).name}
+                    </div>
+                    <span class="color-sum-count">${count}</span>
+                </div>
+            `;
         }
+
+        sumHtml += '</div>';
         $('#colorSumTable').html(sumHtml);
 
-        // 绑定复选框事件
-        $('.color-filter-checkbox').on('change', function() {
-            let color = $(this).val();
-            if (this.checked) {
-                filterColors.add(color);
+        // 绑定颜色块点击事件
+        $('.color-sum-block').on('click', function(e) {
+            e.preventDefault();
+            let color = $(this).data('color');
+            
+            // 如果按住 Ctrl 键（Mac 上是 Command 键）
+            if (e.ctrlKey || e.metaKey) {
+                $(this).toggleClass('selected');
+                if ($(this).hasClass('selected')) {
+                    filterColors.add(color);
+                } else {
+                    filterColors.delete(color);
+                }
             } else {
-                filterColors.delete(color);
+                // 如果没有按住 Ctrl/Command 键，且点击的是已选中的颜色，则清除所有选择
+                if ($(this).hasClass('selected') && filterColors.size === 1) {
+                    $('.color-sum-block').removeClass('selected');
+                    filterColors.clear();
+                } else {
+                    // 否则清除其他选择，只选中当前颜色
+                    $('.color-sum-block').removeClass('selected');
+                    $(this).addClass('selected');
+                    filterColors.clear();
+                    filterColors.add(color);
+                }
             }
-            refreshImage();
+            
+            // 立即刷新图像显示
+            if (!currentSliceImage) {
+                showFullImageView(true);
+            } else {
+                showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
+            }
         });
 
         // 全选按钮事件
         $('#selectAllColors').on('click', function() {
-            $('.color-filter-checkbox').each(function() {
-                let color = $(this).val();
+            $('.color-sum-block').addClass('selected');
+            filterColors.clear();
+            colorSumSorted.forEach((count, color) => {
                 if (color !== 'Err') {
-                    $(this).prop('checked', true);
                     filterColors.add(color);
                 }
             });
@@ -1492,7 +1681,7 @@
 
         // 清除按钮事件
         $('#clearColorFilter').on('click', function() {
-            $('.color-filter-checkbox').prop('checked', false);
+            $('.color-sum-block').removeClass('selected');
             filterColors.clear();
             refreshImage();
         });
@@ -1644,7 +1833,7 @@
                     let r = paletteImageData.data[i];
                     let g = paletteImageData.data[i + 1];
                     let b = paletteImageData.data[i + 2];
-                    let hex = rgbToHex(r, g, b);
+                    let hex = rgbToHex(r, g, b).toLowerCase(); // 确保颜色代码为小写
 
                     //计算坐标
                     let x = (i / 4) % paletteImageData.width;
@@ -2379,11 +2568,13 @@
             if (color) {
                 let hex = rgbToHex(color.r, color.g, color.b);
                 html += `
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="colorBlock" style="background:#${hex};color:${getFontColor(color.r, color.g, color.b)};">
+                    <div class="shortage-color-item">
+                        <div class="colorBlock" style="background:#${hex};color:${getFontColor(color.r, color.g, color.b)};" title="${colorName}">
                             ${colorName}
                         </div>
-                        <button class="btn btn-sm btn-danger ml-2" onclick="removeShortageColor('${colorName}')">删除</button>
+                        <button class="remove-btn" onclick="removeShortageColor('${colorName}')" title="删除">
+                            ×
+                        </button>
                     </div>
                 `;
             }
