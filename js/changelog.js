@@ -1,9 +1,23 @@
 class ChangelogManager {
     constructor() {
-        this.currentVersion = '1.1.0';
+        this.currentVersion = '1.2.0';
         this.lastShownDate = localStorage.getItem('lastShownChangelogDate');
         // 直接在代码中存储更新日志
         this.changelogs = {
+            '1.2.0': `# 版本 1.2.0 (2025-01-16)
+
+## 功能优化
+- 优化了按套盒排序功能的显示效果
+- 改进了套盒筛选的UI布局，更加紧凑和美观
+- 添加了套盒选择功能，可以筛选显示特定套盒的颜色
+- 优化了颜色块的排列方式，更加整齐美观
+
+## 问题修复
+- 修复了颜色显示的undefined错误
+- 修复了按套盒排序时的空值处理问题
+- 添加了未知颜色的错误处理机制
+- 改进了颜色信息的空值检查`,
+
             '1.1.0': `# 版本 1.1.0 (2025-01-15)
 
 ## 界面优化

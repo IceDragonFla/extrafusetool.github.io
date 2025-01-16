@@ -338,7 +338,6 @@
             align-items: center;
             justify-content: center;
             font: 11px monospace;
-            position: relative;
         }
 
         .color-sum-count {
@@ -386,6 +385,231 @@
             margin: 0;
             cursor: pointer;
             font-size: 14px;
+        }
+
+        .boxset-group {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .boxset-header {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .color-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 8px;
+        }
+
+        .color-sum-item {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 2px;
+        }
+
+        .color-sum-block {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: 11px monospace;
+        }
+
+        .color-sum-count {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .boxset-group {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .boxset-header {
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .boxset-title {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .color-name {
+            font-size: 11px;
+            position: absolute;
+            bottom: -18px;
+            width: 100%;
+            text-align: center;
+            color: #666;
+        }
+
+        .color-count {
+            font-size: 10px;
+            position: absolute;
+            top: -16px;
+            width: 100%;
+            text-align: center;
+            color: #666;
+        }
+
+        .color-sum-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 0;
+            min-width: 32px;
+        }
+
+        .boxset-group {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .boxset-header {
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .boxset-title {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .color-sum-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .color-sum-block.selected {
+            outline: 3px solid #007bff;
+        }
+
+        .color-sum-count {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .boxset-group {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .boxset-header {
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .boxset-title {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .color-sum-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .color-sum-block.selected {
+            outline: 3px solid #007bff;
+        }
+
+        .color-name {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .color-count {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .color-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            padding: 4px;
+        }
+
+        .color-sum-item {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 1px;
+        }
+
+        .color-sum-block {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: 11px monospace;
+            margin-bottom: 1px;
+        }
+
+        .color-sum-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        .color-sum-block.selected {
+            outline: 2px solid #007bff;
+            outline-offset: -1px;
+        }
+
+        .color-sum-count {
+            font-size: 11px;
+            color: #666;
+            line-height: 1;
+        }
+
+        .boxset-group {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .boxset-header {
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .boxset-title {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #495057;
         }
     </style>
 
@@ -822,6 +1046,27 @@
     // 在全局变量声明部分添加
     var currentSortMethod = 'count'; // 默认按数量排序
     var customSortOrder = []; // 存储自定义排序顺序
+
+    // 添加全局变量
+    let selectedBoxSetsForSort = new Set();
+
+    // 在document ready中添加事件处理
+    $(document).ready(function() {
+        // ... existing code ...
+        
+        // 处理套盒选择事件
+        $(document).on('change', '.boxset-filter', function() {
+            let boxSetCode = $(this).val();
+            if (this.checked) {
+                selectedBoxSetsForSort.add(boxSetCode);
+            } else {
+                selectedBoxSetsForSort.delete(boxSetCode);
+            }
+            showImageView(imageData, true);
+        });
+        
+        // ... existing code ...
+    });
 
     // 修改更新套盒选择器的函数
     function updateBoxSetSelector() {
@@ -1669,31 +1914,69 @@
                         <a class="dropdown-item ${currentSortMethod === 'count' ? 'active' : ''}" href="#" data-sort="count">按数量排序</a>
                         <a class="dropdown-item ${currentSortMethod === 'code' ? 'active' : ''}" href="#" data-sort="code">按颜色排序</a>
                         <a class="dropdown-item ${currentSortMethod === 'boxset' ? 'active' : ''}" href="#" data-sort="boxset">按套盒排序</a>
-                        <a class="dropdown-item ${currentSortMethod === 'custom' ? 'active' : ''}" href="#" data-sort="custom">自定义顺序</a>
                     </div>
                 </div>
+                ${currentSortMethod === 'boxset' ? getBoxSetSelector() : ''}
                 <span class="ml-auto">总计 ${totolBeadCount} 颗</span>
             </div>
             <div class="color-sum-grid">`;
 
-        for (let [color, count] of colorSumSorted) {
-            if (color === 'Err') continue; // 跳过错误颜色
-            sumHtml += `
-                <div class="color-sum-item">
-                    <div class="color-sum-block ${filterColors.has(color) ? 'selected' : ''}" 
-                         data-color="${color}"
-                         style="background:#${color};color:${getFontColor(color)};"
-                         title="${paletteMap.get(color).name}">
-                        ${paletteMap.get(color).name}
-                    </div>
-                    <span class="color-sum-count">${count}</span>
-                </div>
-            `;
+        if (currentSortMethod === 'boxset') {
+            // 按套盒显示
+            for (let [boxSetCode, colors] of colorSumSorted) {
+                if (!colors || colors.size === 0) continue;
+                
+                let brand = $('#paletteSelect').val();
+                let boxSetName = boxSetCode === 'other' ? '其他' : 
+                                (boxSets[brand] && boxSets[brand][boxSetCode] ? 
+                                 boxSets[brand][boxSetCode].name : boxSetCode);
+                
+                sumHtml += `
+                    <div class="boxset-group mb-4">
+                        <div class="boxset-header p-2 bg-light rounded">
+                            <h6 class="boxset-title m-0">${boxSetName}</h6>
+                        </div>
+                        <div class="color-grid mt-2">`;
+                
+                for (let [color, count] of colors) {
+                    let colorInfo = paletteMap.get(color);
+                    if (colorInfo && colorInfo.name) {
+                        sumHtml += `
+                            <div class="color-sum-item">
+                                <div class="color-sum-block ${filterColors.has(color) ? 'selected' : ''}" 
+                                     data-color="${color}"
+                                     style="background:#${color};color:${getFontColor(color)};"
+                                     title="${colorInfo.name}">${colorInfo.name}</div>
+                                <span class="color-sum-count">${count}</span>
+                            </div>`;
+                    }
+                }
+                
+                sumHtml += `
+                        </div>
+                    </div>`;
+            }
+        } else {
+            // 常规显示（按数量或颜色代码）
+            for (let [color, count] of colorSumSorted) {
+                if (color === 'Err') continue;
+                let colorInfo = paletteMap.get(color);
+                if (colorInfo && colorInfo.name) {
+                    sumHtml += `
+                        <div class="color-sum-item">
+                            <div class="color-sum-block ${filterColors.has(color) ? 'selected' : ''}" 
+                                 data-color="${color}"
+                                 style="background:#${color};color:${getFontColor(color)};"
+                                 title="${colorInfo.name}">${colorInfo.name}</div>
+                            <span class="color-sum-count">${count}</span>
+                        </div>`;
+                }
+            }
         }
 
         sumHtml += '</div>';
         $('#colorSumTable').html(sumHtml);
-
+        
         // 绑定颜色块点击事件
         $('.color-sum-block').on('click', function(e) {
             e.preventDefault();
@@ -1866,7 +2149,7 @@
         let viewCtx = viewCanvas.getContext('2d'),
             rulerX1Ctx = rulerX1Canvas.getContext('2d'), rulerX2Ctx = rulerX2Canvas.getContext('2d'),
             rulerY1Ctx = rulerY1Canvas.getContext('2d'), rulerY2Ctx = rulerY2Canvas.getContext('2d');
-        //绘制上�����标尺
+        //绘制上标尺
         viewCtx.putImageData(rulerX1Ctx.getImageData(largeCanvasOffsetX, 0, viewCanvas.width - 2 * (pixelSize + 1), pixelSize + 1), pixelSize + 1, 0);
         //绘制下横标尺
         viewCtx.putImageData(rulerX2Ctx.getImageData(largeCanvasOffsetX, 0, viewCanvas.width - 2 * (pixelSize + 1), pixelSize + 1), pixelSize + 1, viewCanvas.height - pixelSize - 1);
@@ -2017,7 +2300,7 @@
         for (let [oldColor, newColor] of colorReplaceList) {
             if (newColor == fromColor) colorReplaceList.set(oldColor, toColor);
         }
-        //遍��像素替换列表，将原先目标颜色为fromColor的也换成toColor
+        //遍像素替换列表，将原先目标颜色为fromColor的也换成toColor
         for (let [position, colors] of pixelColorReplaceList) {
             if (colors.new == fromColor) pixelColorReplaceList.set(position, { old: colors.old, new: toColor });
         }
@@ -2150,12 +2433,12 @@
     function getFontColor(arg1, arg2, arg3) {
         if (typeof arg1 == 'string' && arg1.length == 6) {
             let rgb = hexToRgb(arg1);
+            if (!rgb) return '#000'; // 如果转换失败，返回默认黑色
             return rgb.r + rgb.g + rgb.b > 384 ? '#000' : '#FFF';//浅色黑字，深色白字
-        } else if (typeof arg1 == 'number' && typeof arg2 == 'number' && typeof arg2 == 'number') {
-            return arg1 + arg2 + arg2 > 384 ? '#000' : '#FFF';
+        } else if (typeof arg1 == 'number' && typeof arg2 == 'number' && typeof arg3 == 'number') {
+            return arg1 + arg2 + arg3 > 384 ? '#000' : '#FFF';
         }
-        else
-            return null;
+        return '#000'; // 默认返回黑色
     }
 
     //颜色差别公式，简化版，参考https://stackoverflow.com/a/9085524
@@ -2827,38 +3110,74 @@
     function sortColorSum(colors, method) {
         switch (method) {
             case 'count':
-                // 按数量排序（降序）
+                // 按数量排序
                 return new Map([...colors.entries()].sort((a, b) => b[1] - a[1]));
-                
             case 'code':
-                // 按颜色代码排序
-                return new Map([...colors.entries()].sort((a, b) => a[0].localeCompare(b[0])));
-                
-            case 'boxset':
-                // 按套盒排序
+                // 按颜色代码排序 (A1,A2,A3...)
                 return new Map([...colors.entries()].sort((a, b) => {
                     let colorA = paletteMap.get(a[0]);
                     let colorB = paletteMap.get(b[0]);
-                    // 找到颜色所属的套盒
-                    let boxsetA = findColorBoxset(colorA.name);
-                    let boxsetB = findColorBoxset(colorB.name);
-                    // 先按套盒排序，同套盒内按色号排序
-                    return boxsetA.localeCompare(boxsetB) || colorA.name.localeCompare(colorB.name);
+                    if (!colorA || !colorB) return 0;
+                    return (colorA.name || '').localeCompare(colorB.name || '');
                 }));
+            case 'boxset':
+                // 获取当前品牌
+                let brand = $('#paletteSelect').val();
+                let boxSetColorMap = new Map();
                 
-            case 'custom':
-                // 按自定义顺序排序
-                if (customSortOrder.length === 0) {
-                    // 如果没有自定义顺序，打开自定义对话框
-                    showCustomSortDialog(colors);
-                    return colors;
+                // 创建"其他"分类
+                boxSetColorMap.set('other', new Map());
+                
+                // 如果存在套盒数据，先创建所有套盒的Map
+                if (boxSets[brand]) {
+                    for (let [boxSetCode, boxSet] of Object.entries(boxSets[brand])) {
+                        boxSetColorMap.set(boxSetCode, new Map());
+                    }
                 }
-                return new Map([...colors.entries()].sort((a, b) => {
-                    let indexA = customSortOrder.indexOf(a[0]);
-                    let indexB = customSortOrder.indexOf(b[0]);
-                    return (indexA === -1 ? Infinity : indexA) - (indexB === -1 ? Infinity : indexB);
-                }));
                 
+                // 遍历所有颜色
+                for (let [color, count] of colors) {
+                    if (color === 'Err') continue;
+                    
+                    let colorInfo = paletteMap.get(color);
+                    if (!colorInfo || !colorInfo.name) {
+                        boxSetColorMap.get('other').set(color, count);
+                        continue;
+                    }
+                    
+                    let found = false;
+                    
+                    // 如果存在套盒数据
+                    if (boxSets[brand]) {
+                        // 查找颜色所属的套盒
+                        for (let [boxSetCode, boxSet] of Object.entries(boxSets[brand])) {
+                            if (boxSet.colors.includes(colorInfo.name)) {
+                                // 如果用户选择了特定套盒且当前套盒不在选择中，放入"其他"
+                                if (selectedBoxSetsForSort.size > 0 && !selectedBoxSetsForSort.has(boxSetCode)) {
+                                    boxSetColorMap.get('other').set(color, count);
+                                } else {
+                                    boxSetColorMap.get(boxSetCode).set(color, count);
+                                }
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 如果颜色不属于任何套盒，放入"其他"分类
+                    if (!found) {
+                        boxSetColorMap.get('other').set(color, count);
+                    }
+                }
+                
+                // 删除空的套盒
+                for (let [boxSetCode, colors] of boxSetColorMap) {
+                    if (colors.size === 0 && boxSetCode !== 'other') {
+                        boxSetColorMap.delete(boxSetCode);
+                    }
+                }
+                
+                return boxSetColorMap;
             default:
                 return colors;
         }
@@ -2939,20 +3258,196 @@
     }
 
     // 修改颜色统计显示函数
-    function updateColorSumDisplay() {
-        let colorSumSorted = sortColorSum(colorSum, currentSortMethod);
+    function updateColorSumDisplay(colorSumSorted) {
+        if (!colorSumSorted) {
+            colorSumSorted = sortColorSum(colorSum, currentSortMethod);
+        }
         
-        // ... 其他显示代码保持不变 ...
+        let html = `
+            <div class="color-sum-controls">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllColors">全选</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="clearColorFilter">清除</button>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" 
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        排序方式
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item ${currentSortMethod === 'count' ? 'active' : ''}" href="#" data-sort="count">按数量排序</a>
+                        <a class="dropdown-item ${currentSortMethod === 'code' ? 'active' : ''}" href="#" data-sort="code">按颜色排序</a>
+                        <a class="dropdown-item ${currentSortMethod === 'boxset' ? 'active' : ''}" href="#" data-sort="boxset">按套盒排序</a>
+                    </div>
+                </div>
+                ${currentSortMethod === 'boxset' ? getBoxSetSelector() : ''}
+                <span class="ml-auto">总计 ${getTotalBeadCount(colorSumSorted)} 颗</span>
+            </div>
+            <div class="color-sum-grid">`;
+
+        if (currentSortMethod === 'boxset') {
+            // 按套盒显示
+            for (let [boxSetCode, colors] of colorSumSorted) {
+                if (!colors || colors.size === 0) continue;
+                
+                let brand = $('#paletteSelect').val();
+                let boxSetName = boxSetCode === 'other' ? '其他' : 
+                                (boxSets[brand] && boxSets[brand][boxSetCode] ? 
+                                 boxSets[brand][boxSetCode].name : boxSetCode);
+                
+                html += `
+                    <div class="boxset-group mb-4">
+                        <div class="boxset-header p-2 bg-light rounded">
+                            <h6 class="boxset-title m-0">${boxSetName}</h6>
+                        </div>
+                        <div class="color-grid mt-2">`;
+                
+                for (let [color, count] of colors) {
+                    let colorInfo = paletteMap.get(color);
+                    if (colorInfo && colorInfo.name) {
+                        html += `
+                            <div class="color-sum-item">
+                                <div class="color-sum-block ${filterColors.has(color) ? 'selected' : ''}" 
+                                     data-color="${color}"
+                                     style="background:#${color};color:${getFontColor(color)};"
+                                     title="${colorInfo.name}">${colorInfo.name}</div>
+                                <span class="color-sum-count">${count}</span>
+                            </div>`;
+                    }
+                }
+                
+                html += `
+                        </div>
+                    </div>`;
+            }
+        } else {
+            // 常规显示（按数量或颜色代码）
+            for (let [color, count] of colorSumSorted) {
+                if (color === 'Err') continue;
+                if (paletteMap.has(color)) { // 只显示有效的颜色
+                    html += getColorBlockHtml(color, count);
+                }
+            }
+        }
+        
+        html += '</div>';
+        $('#colorSumTable').html(html);
+        
+        // 重新绑定事件
+        bindColorSumEvents();
     }
 
-    // 添加排序方式切换事件
+    // 获取套盒选择器HTML
+    function getBoxSetSelector() {
+        let brand = $('#paletteSelect').val();
+        if (!boxSets[brand]) return '';
+        
+        let html = `
+            <div class="boxset-selector ml-2">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        选择套盒
+                    </button>
+                    <div class="dropdown-menu p-2" style="min-width: 200px;">`;
+        
+        for (let [code, info] of Object.entries(boxSets[brand])) {
+            html += `
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input boxset-filter" 
+                           id="boxset_filter_${code}" value="${code}"
+                           ${selectedBoxSetsForSort.has(code) ? 'checked' : ''}>
+                    <label class="custom-control-label" for="boxset_filter_${code}">
+                        ${info.name}
+                    </label>
+                </div>`;
+        }
+        
+        html += `
+                    </div>
+                </div>
+            </div>`;
+        
+        return html;
+    }
+
+    // 获取颜色块HTML
+    function getColorBlockHtml(color, count) {
+        let colorInfo = paletteMap.get(color);
+        if (!colorInfo) return ''; // 如果颜色信息不存在，返回空字符串
+        
+        return `
+            <div class="color-sum-item">
+                <div class="color-sum-block ${filterColors.has(color) ? 'selected' : ''}" 
+                     data-color="${color}"
+                     style="background:#${color};color:${getFontColor(color)};"
+                     title="${colorInfo.name}">
+                    ${colorInfo.name}
+                </div>
+                <span class="color-sum-count">${count}</span>
+            </div>`;
+    }
+
+    // 获取选中的套盒
+    function getSelectedBoxSets() {
+        return [...document.querySelectorAll('.boxset-filter:checked')].map(cb => cb.value);
+    }
+
+    // 计算总珠子数量
+    function getTotalBeadCount(colorSumSorted) {
+        if (currentSortMethod === 'boxset') {
+            let total = 0;
+            for (let colors of colorSumSorted.values()) {
+                for (let count of colors.values()) {
+                    total += count;
+                }
+            }
+            return total;
+        } else {
+            return [...colorSumSorted.values()].reduce((sum, count) => sum + count, 0);
+        }
+    }
+
+    // 绑定套盒筛选事件
+    function bindBoxSetFilterEvents() {
+        $('.boxset-filter').on('change', function() {
+            updateColorSumDisplay(sortColorSum(colorSum, 'boxset'));
+        });
+    }
+
+    // 修改绑定套盒筛选事件的函数
+    function bindColorSumEvents() {
+        // 原有的事件绑定...
+        
+        // 修改套盒筛选事件
+        $('.boxset-filter').on('change', function() {
+            let sortedColors = sortColorSum(colorSum, 'boxset');
+            showLoadingMask(() => {
+                if (!currentSliceImage) {
+                    showFullImageView(true);
+                } else {
+                    showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
+                }
+                updateColorSumDisplay(sortedColors);
+            });
+        });
+        
+        // 修改排序方式选择事件
     $('.dropdown-item[data-sort]').on('click', function(e) {
         e.preventDefault();
         $('.dropdown-item[data-sort]').removeClass('active');
         $(this).addClass('active');
         currentSortMethod = $(this).data('sort');
-        updateColorSumDisplay();
-    });
+            
+            let sortedColors = sortColorSum(colorSum, currentSortMethod);
+            showLoadingMask(() => {
+                if (!currentSliceImage) {
+                    showFullImageView(true);
+                } else {
+                    showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
+                }
+                updateColorSumDisplay(sortedColors);
+            });
+        });
+    }
 </script>
 
 </html>
