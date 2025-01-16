@@ -1062,7 +1062,8 @@
             } else {
                 selectedBoxSetsForSort.delete(boxSetCode);
             }
-            showImageView(imageData, true);
+            let sortedColors = sortColorSum(colorSum, 'boxset');
+            updateColorSumDisplay(sortedColors);
         });
         
         // ... existing code ...
@@ -3109,33 +3110,24 @@
     // 添加排序相关函数
     function sortColorSum(colors, method) {
         switch (method) {
-            case 'count':
-                // 按数量排序
-                return new Map([...colors.entries()].sort((a, b) => b[1] - a[1]));
-            case 'code':
-                // 按颜色代码排序 (A1,A2,A3...)
-                return new Map([...colors.entries()].sort((a, b) => {
-                    let colorA = paletteMap.get(a[0]);
-                    let colorB = paletteMap.get(b[0]);
-                    if (!colorA || !colorB) return 0;
-                    return (colorA.name || '').localeCompare(colorB.name || '');
-                }));
             case 'boxset':
-                // 获取当前品牌
                 let brand = $('#paletteSelect').val();
                 let boxSetColorMap = new Map();
                 
-                // 创建"其他"分类
+                // 初始化所有选中的套盒和"其他"分类
                 boxSetColorMap.set('other', new Map());
-                
-                // 如果存在套盒数据，先创建所有套盒的Map
-                if (boxSets[brand]) {
-                    for (let [boxSetCode, boxSet] of Object.entries(boxSets[brand])) {
+                if (selectedBoxSetsForSort.size > 0) {
+                    for (let boxSetCode of selectedBoxSetsForSort) {
+                        boxSetColorMap.set(boxSetCode, new Map());
+                    }
+                } else if (boxSets[brand]) {
+                    // 如果没有选中的套盒，显示所有套盒
+                    for (let [boxSetCode, info] of Object.entries(boxSets[brand])) {
                         boxSetColorMap.set(boxSetCode, new Map());
                     }
                 }
                 
-                // 遍历所有颜色
+                // 遍历所有颜色并分类
                 for (let [color, count] of colors) {
                     if (color === 'Err') continue;
                     
@@ -3153,18 +3145,22 @@
                         for (let [boxSetCode, boxSet] of Object.entries(boxSets[brand])) {
                             if (boxSet.colors.includes(colorInfo.name)) {
                                 // 如果用户选择了特定套盒且当前套盒不在选择中，放入"其他"
-                                if (selectedBoxSetsForSort.size > 0 && !selectedBoxSetsForSort.has(boxSetCode)) {
-                                    boxSetColorMap.get('other').set(color, count);
+                                if (selectedBoxSetsForSort.size > 0) {
+                                    if (selectedBoxSetsForSort.has(boxSetCode)) {
+                                        boxSetColorMap.get(boxSetCode).set(color, count);
+                                        found = true;
+                                        break;
+                                    }
                                 } else {
                                     boxSetColorMap.get(boxSetCode).set(color, count);
+                                    found = true;
+                                    break;
                                 }
-                                found = true;
-                                break;
                             }
                         }
                     }
                     
-                    // 如果颜色不属于任何套盒，放入"其他"分类
+                    // 如果颜色不属于任何套盒或不在选中的套盒中，放入"其他"分类
                     if (!found) {
                         boxSetColorMap.get('other').set(color, count);
                     }
