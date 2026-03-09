@@ -644,6 +644,11 @@
                                 accept="image/png, image/jpeg, image/gif" />
                             <label class="custom-file-label" for="imageChooser"></label>
                         </div>
+                        <div class="col-sm-3">
+                            <button type="button" class="btn btn-outline-primary" id="openPreprocessModal">
+                                Block Preprocess
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -823,6 +828,44 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="preprocessModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Block Preprocess</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Select an area, then input grid count (W x H) in that selection.</p>
+                    <div class="mb-3">
+                        <canvas id="preprocessCanvas" style="max-width:100%;border:1px solid #ddd;cursor:crosshair;"></canvas>
+                    </div>
+                    <div class="form-row align-items-end">
+                        <div class="col-3">
+                            <label for="preprocessBlockW">Grid W</label>
+                            <input type="number" class="form-control" id="preprocessBlockW" min="1" value="4">
+                        </div>
+                        <div class="col-3">
+                            <label for="preprocessBlockH">Grid H</label>
+                            <input type="number" class="form-control" id="preprocessBlockH" min="1" value="3">
+                        </div>
+                        <div class="col-6 text-right">
+                            <button type="button" class="btn btn-outline-secondary" id="clearPreprocessSelection">Clear</button>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-2" id="preprocessSelectionInfo">No selection</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="applyPreprocess">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="colorModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
@@ -1035,6 +1078,11 @@
     var scrollbarWidth = getScrollbarWidth();
 
     var rulerX1Canvas, rulerX2Canvas, rulerY1Canvas, rulerY2Canvas;//四个标尺的canvas
+
+    var preprocessCanvasScale = 1;
+    var preprocessSelection = null;
+    var isPreprocessSelecting = false;
+    var preprocessStartPoint = null;
 
     // 在初始化代码部分添加
     var selectedFunctionColors = new Set(); // 存储选中的功能色
@@ -1275,6 +1323,7 @@
                             //绘制原图
                             originalCanvas.width = this.width;
                             originalCanvas.height = this.height;
+                            originalCtx.imageSmoothingEnabled = false;
                             originalCtx.drawImage(this, 0, 0);
                             //切掉原图白色和透明边
                             trimCanvas(originalCanvas);
@@ -1291,6 +1340,78 @@
                 };
 
                 reader.readAsDataURL(imageFile);
+            });
+
+            $('#openPreprocessModal').on('click tap', function () {
+                if ($('#mainContent').is(':hidden') || !originalCanvas.width || !originalCanvas.height) {
+                    alert('Please import an image first.');
+                    return;
+                }
+                preprocessSelection = null;
+                drawPreprocessPreview();
+                $('#preprocessModal').modal('show');
+            });
+
+            $('#preprocessModal').on('shown.bs.modal', function () {
+                drawPreprocessPreview();
+            });
+
+            $('#clearPreprocessSelection').on('click tap', function () {
+                preprocessSelection = null;
+                drawPreprocessPreview();
+            });
+
+            const preprocessCanvas = document.getElementById('preprocessCanvas');
+            if (preprocessCanvas) {
+                preprocessCanvas.addEventListener('mousedown', function (event) {
+                    if (!preprocessCanvas.width || !preprocessCanvas.height) return;
+                    isPreprocessSelecting = true;
+                    preprocessStartPoint = getPreprocessPoint(event, preprocessCanvas);
+                    preprocessSelection = { x: preprocessStartPoint.x, y: preprocessStartPoint.y, w: 1, h: 1 };
+                    drawPreprocessPreview();
+                });
+
+                preprocessCanvas.addEventListener('mousemove', function (event) {
+                    if (!isPreprocessSelecting || !preprocessStartPoint) return;
+                    const point = getPreprocessPoint(event, preprocessCanvas);
+                    const x = Math.min(preprocessStartPoint.x, point.x);
+                    const y = Math.min(preprocessStartPoint.y, point.y);
+                    const w = Math.max(1, Math.abs(point.x - preprocessStartPoint.x) + 1);
+                    const h = Math.max(1, Math.abs(point.y - preprocessStartPoint.y) + 1);
+                    preprocessSelection = { x: x, y: y, w: w, h: h };
+                    drawPreprocessPreview();
+                });
+
+                preprocessCanvas.addEventListener('mouseup', function () {
+                    isPreprocessSelecting = false;
+                    preprocessStartPoint = null;
+                });
+
+                preprocessCanvas.addEventListener('mouseleave', function () {
+                    isPreprocessSelecting = false;
+                    preprocessStartPoint = null;
+                });
+            }
+
+            $('#applyPreprocess').on('click tap', function () {
+                if (!preprocessSelection) {
+                    alert('Please select a region first.');
+                    return;
+                }
+
+                const gridW = parseInt($('#preprocessBlockW').val(), 10);
+                const gridH = parseInt($('#preprocessBlockH').val(), 10);
+                if (!Number.isInteger(gridW) || !Number.isInteger(gridH) || gridW <= 0 || gridH <= 0) {
+                    alert('Grid count must be positive integers.');
+                    return;
+                }
+
+                $('#preprocessModal').modal('hide');
+                showLoadingMask(() => {
+                    applyPixelCompression(originalCanvas, preprocessSelection, gridW, gridH);
+                    trimCanvas(originalCanvas);
+                    rebuildFromOriginalCanvas(originalCanvas);
+                });
             });
 
             //拼豆品牌变化
@@ -1703,6 +1824,156 @@
         canvas.width = trimWidth;
         canvas.height = trimHeight;
         ctx.putImageData(trimmedImage, 0, 0);
+    }
+
+    function getCellAverageColor(sourceCtx, x, y, cellW, cellH, sourceW, sourceH) {
+        const subPixels = 4;
+        let sumR = 0, sumG = 0, sumB = 0, sumA = 0, count = 0;
+
+        for (let sy = 0; sy < subPixels; sy++) {
+            for (let sx = 0; sx < subPixels; sx++) {
+                const sampleX = x + (sx + 0.5) * (cellW / subPixels);
+                const sampleY = y + (sy + 0.5) * (cellH / subPixels);
+                if (sampleX < 0 || sampleY < 0 || sampleX >= sourceW || sampleY >= sourceH) continue;
+
+                const data = sourceCtx.getImageData(Math.floor(sampleX), Math.floor(sampleY), 1, 1).data;
+                sumR += data[0];
+                sumG += data[1];
+                sumB += data[2];
+                sumA += data[3];
+                count++;
+            }
+        }
+
+        if (count === 0) return { r: 255, g: 255, b: 255, a: 0 };
+        return {
+            r: Math.round(sumR / count),
+            g: Math.round(sumG / count),
+            b: Math.round(sumB / count),
+            a: Math.round(sumA / count)
+        };
+    }
+
+    function applyPixelCompression(canvas, selection, gridCols, gridRows) {
+        const sourceW = canvas.width;
+        const sourceH = canvas.height;
+        if (sourceW <= 0 || sourceH <= 0) return;
+
+        const cellW = selection.w / gridCols;
+        const cellH = selection.h / gridRows;
+        if (!isFinite(cellW) || !isFinite(cellH) || cellW <= 0 || cellH <= 0) return;
+
+        const anchorX = selection.x;
+        const anchorY = selection.y;
+        const colStart = Math.floor((0 - anchorX) / cellW);
+        const colEnd = Math.ceil((sourceW - anchorX) / cellW) - 1;
+        const rowStart = Math.floor((0 - anchorY) / cellH);
+        const rowEnd = Math.ceil((sourceH - anchorY) / cellH) - 1;
+
+        const outCols = colEnd - colStart + 1;
+        const outRows = rowEnd - rowStart + 1;
+        if (outCols <= 0 || outRows <= 0) return;
+
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = sourceW;
+        sourceCanvas.height = sourceH;
+        const sourceCtx = sourceCanvas.getContext('2d');
+        sourceCtx.drawImage(canvas, 0, 0);
+
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = outCols;
+        outCanvas.height = outRows;
+        const outCtx = outCanvas.getContext('2d');
+        const outImage = outCtx.createImageData(outCols, outRows);
+
+        for (let outY = 0; outY < outRows; outY++) {
+            for (let outX = 0; outX < outCols; outX++) {
+                const srcX = anchorX + (colStart + outX) * cellW;
+                const srcY = anchorY + (rowStart + outY) * cellH;
+                const color = getCellAverageColor(sourceCtx, srcX, srcY, cellW, cellH, sourceW, sourceH);
+                const idx = (outY * outCols + outX) * 4;
+                outImage.data[idx] = color.r;
+                outImage.data[idx + 1] = color.g;
+                outImage.data[idx + 2] = color.b;
+                outImage.data[idx + 3] = color.a;
+            }
+        }
+
+        outCtx.putImageData(outImage, 0, 0);
+        canvas.width = outCols;
+        canvas.height = outRows;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(outCanvas, 0, 0);
+    }
+
+    function rebuildFromOriginalCanvas(sourceCanvas) {
+        similarColorCache = new Map();
+        paletteImageData = new Array();
+        sliceImages = new Array();
+        currentSliceImage = null;
+        largeCanvasOffsetX = 0;
+        largeCanvasOffsetY = 0;
+        colorReplaceList = new Map();
+        pixelColorReplaceList = new Map();
+        refreshColorReplaceList();
+
+        toPaletteColor(sourceCanvas, fullCanvas);
+        sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+        showFullImageView();
+    }
+
+    function updatePreprocessSelectionInfo() {
+        const info = $('#preprocessSelectionInfo');
+        if (!preprocessSelection) {
+            info.text('No selection');
+            return;
+        }
+        info.text(
+            `Selection: x=${preprocessSelection.x}, y=${preprocessSelection.y}, ` +
+            `w=${preprocessSelection.w}, h=${preprocessSelection.h}`
+        );
+    }
+
+    function drawPreprocessPreview() {
+        const source = document.getElementById('originalCanvas');
+        const preview = document.getElementById('preprocessCanvas');
+        if (!source || !preview || !source.width || !source.height) return;
+
+        const maxWidth = 860;
+        const maxHeight = 520;
+        preprocessCanvasScale = Math.min(maxWidth / source.width, maxHeight / source.height, 1);
+        preview.width = Math.max(1, Math.round(source.width * preprocessCanvasScale));
+        preview.height = Math.max(1, Math.round(source.height * preprocessCanvasScale));
+
+        const ctx = preview.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.clearRect(0, 0, preview.width, preview.height);
+        ctx.drawImage(source, 0, 0, preview.width, preview.height);
+
+        if (preprocessSelection) {
+            const sx = Math.round(preprocessSelection.x * preprocessCanvasScale);
+            const sy = Math.round(preprocessSelection.y * preprocessCanvasScale);
+            const sw = Math.max(1, Math.round(preprocessSelection.w * preprocessCanvasScale));
+            const sh = Math.max(1, Math.round(preprocessSelection.h * preprocessCanvasScale));
+            ctx.strokeStyle = '#ff4d4f';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sx + 0.5, sy + 0.5, sw, sh);
+            ctx.fillStyle = 'rgba(255,77,79,0.18)';
+            ctx.fillRect(sx + 1, sy + 1, Math.max(0, sw - 1), Math.max(0, sh - 1));
+        }
+
+        updatePreprocessSelectionInfo();
+    }
+
+    function getPreprocessPoint(event, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.max(0, Math.min(canvas.width - 1, Math.floor(event.clientX - rect.left)));
+        const y = Math.max(0, Math.min(canvas.height - 1, Math.floor(event.clientY - rect.top)));
+        return {
+            x: Math.floor(x / preprocessCanvasScale),
+            y: Math.floor(y / preprocessCanvasScale)
+        };
     }
 
     //将canvas颜色输出为最相近的调色板颜色
