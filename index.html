@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
@@ -611,6 +611,199 @@
             font-size: 0.9rem;
             color: #495057;
         }
+
+        /* --- UI Refresh --- */
+        :root {
+            --bg-1: #f5f3ee;
+            --bg-2: #efe8dc;
+            --ink-1: #1a1a1a;
+            --ink-2: #3f3f3f;
+            --accent: #0f6b4d;
+            --accent-2: #f0b429;
+            --card: #fffaf2;
+            --card-border: rgba(20, 20, 20, 0.08);
+            --shadow-1: 0 10px 30px rgba(20, 20, 20, 0.10);
+            --shadow-2: 0 2px 10px rgba(20, 20, 20, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--ink-1);
+            background: radial-gradient(1200px 600px at 10% -20%, #f7efe2 0%, transparent 60%),
+                        radial-gradient(1200px 600px at 110% -10%, #e6f1ea 0%, transparent 60%),
+                        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.35;
+        }
+
+        .app-shell {
+            margin: 18px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow-1);
+        }
+
+        .card {
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow-2);
+            background: var(--card);
+        }
+
+        .card-header {
+            background: linear-gradient(180deg, #ffffff 0%, #f8f4ec 100%);
+            border-bottom: 1px solid var(--card-border);
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .card-header label,
+        .card-header h5,
+        .card-header h6 {
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 18px;
+        }
+
+        .main-grid {
+            gap: 14px;
+        }
+
+        .row.main-grid > .col {
+            padding: 0 8px;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+        }
+
+        .btn {
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn-outline-primary {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--accent);
+            color: #ffffff;
+        }
+
+        .btn-outline-danger {
+            border-color: #b23a3a;
+            color: #b23a3a;
+        }
+
+        .btn-outline-danger:hover {
+            background: #b23a3a;
+            color: #ffffff;
+        }
+
+        .btn-outline-secondary {
+            border-color: #6b6b6b;
+            color: #444;
+        }
+
+        .colorBlock,
+        .color-sum-block {
+            border-radius: 6px;
+            font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        }
+
+        #viewCanvas,
+        #originalCanvas,
+        #fullCanvas,
+        #preprocessCanvas {
+            border-radius: 8px;
+        }
+
+        #preprocessCanvas {
+            background: #ffffff;
+        }
+
+        .modal-content {
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow-1);
+        }
+
+        .dropdown-menu {
+            border-radius: 10px;
+        }
+
+        .form-control {
+            border-radius: 8px;
+        }
+
+        .tool-container {
+            gap: 18px;
+        }
+
+        .color-sum-panel {
+            position: sticky;
+            bottom: 12px;
+            z-index: 5;
+        }
+
+        .color-sum-panel.is-hidden {
+            display: none;
+        }
+
+        .color-sum-panel.dock-right {
+            position: fixed;
+            right: 16px;
+            top: 88px;
+            bottom: 16px;
+            width: 320px;
+            z-index: 20;
+        }
+
+        .color-sum-panel.dock-right .card-body {
+            max-height: calc(100vh - 170px);
+            overflow: auto;
+        }
+
+        .color-sum-panel .card-body {
+            max-height: 42vh;
+            overflow: auto;
+        }
+
+        .color-sum-grid {
+            gap: 6px;
+        }
+
+        .color-sum-item {
+            padding: 8px 0;
+        }
+
+        .color-sum-count {
+            line-height: 1.1;
+        }
+
+        @media (max-width: 992px) {
+            .row.main-grid > .col {
+                max-width: 100%;
+                flex: 0 0 100%;
+            }
+        }
     </style>
 
     <script src="js/palette.v4.js"></script>
@@ -622,7 +815,7 @@
 </head>
 
 <body>
-    <div class="card">
+    <div class="card app-shell">
         <div class="h3 card-header">
             <label>拼豆辅助工具</label>
             <div class="float-right mx-2" class='align-top'>
@@ -646,7 +839,7 @@
                         </div>
                         <div class="col-sm-3">
                             <button type="button" class="btn btn-outline-primary" id="openPreprocessModal">
-                                Block Preprocess
+                                像素块预处理
                             </button>
                         </div>
                     </div>
@@ -727,7 +920,7 @@
         </div>
     </div>
     <div id='mainContent'>
-        <div class="row">
+        <div class="row main-grid">
             <div class="col">
                 <div class="card">
                     <div class="card-header">
@@ -779,7 +972,7 @@
                         隐藏色号
                     </button>
                     <button class="btn btn-outline-primary mx-2" type="button" id="showColorSum">
-                        颜色统计
+                        颜色聚焦
                     </button>
                     <div class="dropdown d-inline-block mx-2">
                         <button class="btn btn-outline-danger dropdown-toggle" type="button" id="dropdownColorReplace"
@@ -827,40 +1020,52 @@
                 <canvas id="viewCanvas"></canvas>
             </div>
         </div>
+        <div class="card color-sum-panel" id="colorSumPanel">
+            <div class="card-header">
+                颜色聚焦条
+                <div class="float-right">
+                    <button type="button" class="btn btn-sm btn-outline-secondary mx-1" id="dockColorSumBottom">下方</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mx-1" id="dockColorSumRight">右侧</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="colorSumTable"></div>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="preprocessModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Block Preprocess</h5>
+                    <h5 class="modal-title">像素块预处理</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-2">Select an area, then input grid count (W x H) in that selection.</p>
+                    <p class="mb-2">先框选一个规则区域，再输入该区域内的网格数量（宽 x 高）。</p>
                     <div class="mb-3">
                         <canvas id="preprocessCanvas" style="max-width:100%;border:1px solid #ddd;cursor:crosshair;"></canvas>
                     </div>
                     <div class="form-row align-items-end">
                         <div class="col-3">
-                            <label for="preprocessBlockW">Grid W</label>
+                            <label for="preprocessBlockW">网格宽</label>
                             <input type="number" class="form-control" id="preprocessBlockW" min="1" value="4">
                         </div>
                         <div class="col-3">
-                            <label for="preprocessBlockH">Grid H</label>
+                            <label for="preprocessBlockH">网格高</label>
                             <input type="number" class="form-control" id="preprocessBlockH" min="1" value="3">
                         </div>
                         <div class="col-6 text-right">
-                            <button type="button" class="btn btn-outline-secondary" id="clearPreprocessSelection">Clear</button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearPreprocessSelection">清除</button>
                         </div>
                     </div>
-                    <small class="text-muted d-block mt-2" id="preprocessSelectionInfo">No selection</small>
+                    <small class="text-muted d-block mt-2" id="preprocessSelectionInfo">未选择区域</small>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="applyPreprocess">Apply</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="applyPreprocess">应用</button>
                 </div>
             </div>
         </div>
@@ -986,27 +1191,7 @@
             </div>
         </div>
     </div>
-    <!-- 颜色统计模态框 -->
-    <div class="modal fade" id="colorSumModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">颜色统计</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div id="colorSumTable">
-                        <!-- 这里会动态填充颜色统计内容 -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-primary" id="copyColorSum">复制统计结果</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- 颜色统计模态框已替换为页面下方颜色聚焦条 -->
     <div class="modal fade" id="shortageColorsModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
@@ -1344,7 +1529,7 @@
 
             $('#openPreprocessModal').on('click tap', function () {
                 if ($('#mainContent').is(':hidden') || !originalCanvas.width || !originalCanvas.height) {
-                    alert('Please import an image first.');
+                    alert('请先导入图片。');
                     return;
                 }
                 preprocessSelection = null;
@@ -1391,18 +1576,53 @@
                     isPreprocessSelecting = false;
                     preprocessStartPoint = null;
                 });
+
+                preprocessCanvas.addEventListener('touchstart', function (event) {
+                    if (!preprocessCanvas.width || !preprocessCanvas.height) return;
+                    event.preventDefault();
+                    const touch = event.touches[0];
+                    if (!touch) return;
+                    isPreprocessSelecting = true;
+                    preprocessStartPoint = getPreprocessPointFromTouch(touch, preprocessCanvas);
+                    preprocessSelection = { x: preprocessStartPoint.x, y: preprocessStartPoint.y, w: 1, h: 1 };
+                    drawPreprocessPreview();
+                }, { passive: false });
+
+                preprocessCanvas.addEventListener('touchmove', function (event) {
+                    if (!isPreprocessSelecting || !preprocessStartPoint) return;
+                    event.preventDefault();
+                    const touch = event.touches[0];
+                    if (!touch) return;
+                    const point = getPreprocessPointFromTouch(touch, preprocessCanvas);
+                    const x = Math.min(preprocessStartPoint.x, point.x);
+                    const y = Math.min(preprocessStartPoint.y, point.y);
+                    const w = Math.max(1, Math.abs(point.x - preprocessStartPoint.x) + 1);
+                    const h = Math.max(1, Math.abs(point.y - preprocessStartPoint.y) + 1);
+                    preprocessSelection = { x: x, y: y, w: w, h: h };
+                    drawPreprocessPreview();
+                }, { passive: false });
+
+                preprocessCanvas.addEventListener('touchend', function () {
+                    isPreprocessSelecting = false;
+                    preprocessStartPoint = null;
+                });
+
+                preprocessCanvas.addEventListener('touchcancel', function () {
+                    isPreprocessSelecting = false;
+                    preprocessStartPoint = null;
+                });
             }
 
             $('#applyPreprocess').on('click tap', function () {
                 if (!preprocessSelection) {
-                    alert('Please select a region first.');
+                    alert('请先框选一个区域。');
                     return;
                 }
 
                 const gridW = parseInt($('#preprocessBlockW').val(), 10);
                 const gridH = parseInt($('#preprocessBlockH').val(), 10);
                 if (!Number.isInteger(gridW) || !Number.isInteger(gridH) || gridW <= 0 || gridH <= 0) {
-                    alert('Grid count must be positive integers.');
+                    alert('网格数量必须是正整数。');
                     return;
                 }
 
@@ -1583,42 +1803,37 @@
                 }
             });
 
-            // 颜色统计按钮点击事件
+            // 颜色聚焦条按钮点击事件
+            let colorSumVisible = true;
+            function setColorSumVisible(nextVisible) {
+                colorSumVisible = nextVisible;
+                const panel = $('#colorSumPanel');
+                panel.toggleClass('is-hidden', !colorSumVisible);
+                if (colorSumVisible) {
+                    let sortedColors = sortColorSum(colorSum, currentSortMethod);
+                    updateColorSumDisplay(sortedColors);
+                    panel[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+
             $('#showColorSum').on('click tap', function() {
-                $('#colorSumModal').modal('show');
+                setColorSumVisible(!colorSumVisible);
             });
 
-            // 复制颜色统计结果
-            $('#copyColorSum').on('click tap', async function() {
-                let copyText = '颜色统计结果\n';
-                for (let [color, count] of colorSum) {
-                    if (color === 'Err') continue;
-                    let colorName = paletteMap.get(color).name;
-                    copyText += `${colorName}(#${color}): ${count}个\n`;
-                }
-                
-                try {
-                    await navigator.clipboard.writeText(copyText);
-                    alert('复制成功！');
-                } catch (err) {
-                    console.error('复制失败: ', err);
-                    // 降级方案
-                    const textarea = document.createElement('textarea');
-                    textarea.value = copyText;
-                    textarea.style.position = 'fixed';
-                    textarea.style.opacity = '0';
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    try {
-                        document.execCommand('copy');
-                        alert('复制成功！');
-                    } catch (err) {
-                        console.error('复制失败: ', err);
-                        alert('复制失败，请手动复制');
-                    }
-                    document.body.removeChild(textarea);
-                }
+            function setColorSumDock(position) {
+                const panel = $('#colorSumPanel');
+                panel.toggleClass('dock-right', position === 'right');
+            }
+
+            $('#dockColorSumBottom').on('click tap', function() {
+                setColorSumDock('bottom');
             });
+
+            $('#dockColorSumRight').on('click tap', function() {
+                setColorSumDock('right');
+            });
+            // 颜色聚焦条不再提供复制按钮
+
 
         }
 
@@ -1826,7 +2041,7 @@
         ctx.putImageData(trimmedImage, 0, 0);
     }
 
-    function getCellAverageColor(sourceCtx, x, y, cellW, cellH, sourceW, sourceH) {
+    function getCellAverageColorFromData(data, x, y, cellW, cellH, sourceW, sourceH) {
         const subPixels = 4;
         let sumR = 0, sumG = 0, sumB = 0, sumA = 0, count = 0;
 
@@ -1836,11 +2051,13 @@
                 const sampleY = y + (sy + 0.5) * (cellH / subPixels);
                 if (sampleX < 0 || sampleY < 0 || sampleX >= sourceW || sampleY >= sourceH) continue;
 
-                const data = sourceCtx.getImageData(Math.floor(sampleX), Math.floor(sampleY), 1, 1).data;
-                sumR += data[0];
-                sumG += data[1];
-                sumB += data[2];
-                sumA += data[3];
+                const ix = Math.floor(sampleX);
+                const iy = Math.floor(sampleY);
+                const idx = (iy * sourceW + ix) * 4;
+                sumR += data[idx];
+                sumG += data[idx + 1];
+                sumB += data[idx + 2];
+                sumA += data[idx + 3];
                 count++;
             }
         }
@@ -1879,6 +2096,7 @@
         sourceCanvas.height = sourceH;
         const sourceCtx = sourceCanvas.getContext('2d');
         sourceCtx.drawImage(canvas, 0, 0);
+        const sourceData = sourceCtx.getImageData(0, 0, sourceW, sourceH).data;
 
         const outCanvas = document.createElement('canvas');
         outCanvas.width = outCols;
@@ -1890,7 +2108,7 @@
             for (let outX = 0; outX < outCols; outX++) {
                 const srcX = anchorX + (colStart + outX) * cellW;
                 const srcY = anchorY + (rowStart + outY) * cellH;
-                const color = getCellAverageColor(sourceCtx, srcX, srcY, cellW, cellH, sourceW, sourceH);
+                const color = getCellAverageColorFromData(sourceData, srcX, srcY, cellW, cellH, sourceW, sourceH);
                 const idx = (outY * outCols + outX) * 4;
                 outImage.data[idx] = color.r;
                 outImage.data[idx + 1] = color.g;
@@ -1926,11 +2144,11 @@
     function updatePreprocessSelectionInfo() {
         const info = $('#preprocessSelectionInfo');
         if (!preprocessSelection) {
-            info.text('No selection');
+            info.text('未选择区域');
             return;
         }
         info.text(
-            `Selection: x=${preprocessSelection.x}, y=${preprocessSelection.y}, ` +
+            `已选区域：x=${preprocessSelection.x}, y=${preprocessSelection.y}, ` +
             `w=${preprocessSelection.w}, h=${preprocessSelection.h}`
         );
     }
@@ -1970,6 +2188,16 @@
         const rect = canvas.getBoundingClientRect();
         const x = Math.max(0, Math.min(canvas.width - 1, Math.floor(event.clientX - rect.left)));
         const y = Math.max(0, Math.min(canvas.height - 1, Math.floor(event.clientY - rect.top)));
+        return {
+            x: Math.floor(x / preprocessCanvasScale),
+            y: Math.floor(y / preprocessCanvasScale)
+        };
+    }
+
+    function getPreprocessPointFromTouch(touch, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.max(0, Math.min(canvas.width - 1, Math.floor(touch.clientX - rect.left)));
+        const y = Math.max(0, Math.min(canvas.height - 1, Math.floor(touch.clientY - rect.top)));
         return {
             x: Math.floor(x / preprocessCanvasScale),
             y: Math.floor(y / preprocessCanvasScale)
@@ -2035,7 +2263,7 @@
             tempCtx = tempCanvas.getContext('2d');
         tempCanvas.width = pieceSize;
         tempCanvas.height = pieceSize;
-        tempCtx.font = ~~(pieceSize / 4) + 'px monospace';
+        tempCtx.font = '600 ' + ~~(pieceSize / 4) + 'px Consolas, "Courier New", monospace';
         tempCtx.strokeStyle = '#000';
         tempCtx.textBaseline = 'bottom';
         tempCtx.textAlign = 'right';
@@ -2081,7 +2309,7 @@
 
         largeCanvas.width = imageData.width * (pixelSize + 1);
         largeCanvas.height = imageData.height * (pixelSize + 1);
-        largeCtx.font = (~~(pixelSize / 2)) + 'px monospace';
+        largeCtx.font = '600 ' + (~~(pixelSize / 2)) + 'px Consolas, "Courier New", monospace';
         largeCtx.strokeStyle = '#000';
         largeCtx.textBaseline = 'middle';
         largeCtx.textAlign = 'center';
@@ -2363,22 +2591,22 @@
             rulerY1Ctx = rulerY1Canvas.getContext('2d'), rulerY2Ctx = rulerY2Canvas.getContext('2d');
         rulerX1Ctx.fillStyle = '#000';
         rulerX1Ctx.strokeStyle = '#000';
-        rulerX1Ctx.font = (~~(pixelSize / 2) + 2) + 'px monospace';
+        rulerX1Ctx.font = '600 ' + (~~(pixelSize / 2) + 2) + 'px Consolas, "Courier New", monospace';
         rulerX1Ctx.textBaseline = 'middle';
         rulerX1Ctx.textAlign = 'center';
         rulerX2Ctx.fillStyle = '#000';
         rulerX2Ctx.strokeStyle = '#000';
-        rulerX2Ctx.font = (~~(pixelSize / 2) + 2) + 'px monospace';
+        rulerX2Ctx.font = '600 ' + (~~(pixelSize / 2) + 2) + 'px Consolas, "Courier New", monospace';
         rulerX2Ctx.textBaseline = 'middle';
         rulerX2Ctx.textAlign = 'center';
         rulerY1Ctx.fillStyle = '#000';
         rulerY1Ctx.strokeStyle = '#000';
-        rulerY1Ctx.font = (~~(pixelSize / 2) + 2) + 'px monospace';
+        rulerY1Ctx.font = '600 ' + (~~(pixelSize / 2) + 2) + 'px Consolas, "Courier New", monospace';
         rulerY1Ctx.textBaseline = 'middle';
         rulerY1Ctx.textAlign = 'center';
         rulerY2Ctx.fillStyle = '#000';
         rulerY2Ctx.strokeStyle = '#000';
-        rulerY2Ctx.font = (~~(pixelSize / 2) + 2) + 'px monospace';
+        rulerY2Ctx.font = '600 ' + (~~(pixelSize / 2) + 2) + 'px Consolas, "Courier New", monospace';
         rulerY2Ctx.textBaseline = 'middle';
         rulerY2Ctx.textAlign = 'center';
 
@@ -3660,11 +3888,16 @@
 
     // 计算总珠子数量
     function getTotalBeadCount(colorSumSorted) {
-        if (currentSortMethod === 'boxset') {
+        if (!colorSumSorted || colorSumSorted.size === 0) return 0;
+        const firstValue = colorSumSorted.values().next().value;
+        const isNestedMap = firstValue instanceof Map;
+        if (currentSortMethod === 'boxset' || isNestedMap) {
             let total = 0;
             for (let colors of colorSumSorted.values()) {
-                for (let count of colors.values()) {
-                    total += count;
+                if (colors instanceof Map) {
+                    for (let count of colors.values()) {
+                        total += count;
+                    }
                 }
             }
             return total;
