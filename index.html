@@ -916,6 +916,18 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-group">
+                    <div class="row">
+                        <label class="col-sm-2 col-form-label">杂色处理：</label>
+                        <div class="col-sm-4">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="sparseBlockCleanupSwitch" checked>
+                                <label class="custom-control-label" for="sparseBlockCleanupSwitch">启用少量色块自动合并</label>
+                            </div>
+                            <small class="form-text text-muted">用于清理数量很少的杂色点，默认开启。</small>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
@@ -1269,6 +1281,10 @@
     var isPreprocessSelecting = false;
     var preprocessStartPoint = null;
 
+    const sparseBlockMaxSize = 2;
+    const sparseColorCountRate = 0.0015;
+    const sparseColorCountMin = 4;
+
     // 在初始化代码部分添加
     var selectedFunctionColors = new Set(); // 存储选中的功能色
 
@@ -1282,6 +1298,7 @@
 
     // 添加全局变量
     let selectedBoxSetsForSort = new Set();
+    var enableSparseBlockCleanup = true;
 
     // 在document ready中添加事件处理
     $(document).ready(function() {
@@ -1453,6 +1470,12 @@
         var originalCanvas = document.getElementById('originalCanvas'),//原始图片canvas
             fullCanvas = document.getElementById('fullCanvas'),//完整图片canvas
             viewCanvas = document.getElementById('viewCanvas');//视图（可拖拽点击）canvas
+
+        let sparseBlockCleanupSaved = localStorage.getItem('enableSparseBlockCleanup');
+        if (sparseBlockCleanupSaved !== null) {
+            enableSparseBlockCleanup = sparseBlockCleanupSaved === '1';
+        }
+        $('#sparseBlockCleanupSwitch').prop('checked', enableSparseBlockCleanup);
 
         //显示调色板选色器
         generateColorSelectorHtml();
@@ -1673,6 +1696,18 @@
                         resizeViewCanvasFitWindow();
                         refreshImage();
                     }
+                }
+            });
+
+            $('#sparseBlockCleanupSwitch').on('change', function () {
+                enableSparseBlockCleanup = this.checked;
+                localStorage.setItem('enableSparseBlockCleanup', enableSparseBlockCleanup ? '1' : '0');
+                if (!$('#mainContent').is(':hidden') && originalCanvas && originalCanvas.width && originalCanvas.height) {
+                    showLoadingMask(() => {
+                        toPaletteColor(originalCanvas, fullCanvas);
+                        sliceCanvasToImage(fullCanvas, 'sliceImageContainer');
+                        showFullImageView(true);
+                    });
                 }
             });
 
@@ -2204,6 +2239,149 @@
         };
     }
 
+    function reduceSparseColorBlocks(imageData, width, height) {
+        const totalPixels = width * height;
+        if (totalPixels <= 0) return;
+
+        const pixelColors = new Array(totalPixels);
+        const colorTotals = new Map();
+        let nonTransparentCount = 0;
+
+        for (let i = 0; i < totalPixels; i++) {
+            const cursor = i * 4;
+            if (imageData.data[cursor + 3] === 0) {
+                pixelColors[i] = null;
+                continue;
+            }
+
+            const hex = rgbToHex(imageData.data[cursor], imageData.data[cursor + 1], imageData.data[cursor + 2]).toLowerCase();
+            pixelColors[i] = hex;
+            colorTotals.set(hex, (colorTotals.get(hex) || 0) + 1);
+            nonTransparentCount++;
+        }
+
+        if (nonTransparentCount === 0) return;
+
+        const sparseColorMaxCount = Math.max(sparseColorCountMin, Math.ceil(nonTransparentCount * sparseColorCountRate));
+        const visited = new Uint8Array(totalPixels);
+
+        const queue = [];
+        const component = [];
+
+        for (let i = 0; i < totalPixels; i++) {
+            if (visited[i] || !pixelColors[i]) continue;
+
+            const sourceColor = pixelColors[i];
+            queue.length = 0;
+            component.length = 0;
+            queue.push(i);
+            visited[i] = 1;
+
+            while (queue.length > 0) {
+                const current = queue.pop();
+                component.push(current);
+
+                const x = current % width;
+                const y = ~~(current / width);
+
+                if (x > 0) {
+                    const left = current - 1;
+                    if (!visited[left] && pixelColors[left] === sourceColor) {
+                        visited[left] = 1;
+                        queue.push(left);
+                    }
+                }
+                if (x + 1 < width) {
+                    const right = current + 1;
+                    if (!visited[right] && pixelColors[right] === sourceColor) {
+                        visited[right] = 1;
+                        queue.push(right);
+                    }
+                }
+                if (y > 0) {
+                    const up = current - width;
+                    if (!visited[up] && pixelColors[up] === sourceColor) {
+                        visited[up] = 1;
+                        queue.push(up);
+                    }
+                }
+                if (y + 1 < height) {
+                    const down = current + width;
+                    if (!visited[down] && pixelColors[down] === sourceColor) {
+                        visited[down] = 1;
+                        queue.push(down);
+                    }
+                }
+            }
+
+            const colorTotal = colorTotals.get(sourceColor) || 0;
+            if (component.length > sparseBlockMaxSize || colorTotal > sparseColorMaxCount) {
+                continue;
+            }
+
+            const neighborTotals = new Map();
+            for (let p = 0; p < component.length; p++) {
+                const current = component[p];
+                const x = current % width;
+                const y = ~~(current / width);
+
+                if (x > 0) {
+                    const leftColor = pixelColors[current - 1];
+                    if (leftColor && leftColor !== sourceColor) {
+                        neighborTotals.set(leftColor, (neighborTotals.get(leftColor) || 0) + 1);
+                    }
+                }
+                if (x + 1 < width) {
+                    const rightColor = pixelColors[current + 1];
+                    if (rightColor && rightColor !== sourceColor) {
+                        neighborTotals.set(rightColor, (neighborTotals.get(rightColor) || 0) + 1);
+                    }
+                }
+                if (y > 0) {
+                    const upColor = pixelColors[current - width];
+                    if (upColor && upColor !== sourceColor) {
+                        neighborTotals.set(upColor, (neighborTotals.get(upColor) || 0) + 1);
+                    }
+                }
+                if (y + 1 < height) {
+                    const downColor = pixelColors[current + width];
+                    if (downColor && downColor !== sourceColor) {
+                        neighborTotals.set(downColor, (neighborTotals.get(downColor) || 0) + 1);
+                    }
+                }
+            }
+
+            if (neighborTotals.size === 0) continue;
+
+            let replacementColor = null;
+            let replacementScore = -1;
+            for (let [candidateColor, score] of neighborTotals) {
+                if (score > replacementScore) {
+                    replacementColor = candidateColor;
+                    replacementScore = score;
+                }
+            }
+
+            if (!replacementColor) continue;
+
+            const replacementInfo = paletteMap.get(replacementColor);
+            if (!replacementInfo) continue;
+
+            for (let p = 0; p < component.length; p++) {
+                const pixelIndex = component[p];
+                const cursor = pixelIndex * 4;
+                imageData.data[cursor] = replacementInfo.r;
+                imageData.data[cursor + 1] = replacementInfo.g;
+                imageData.data[cursor + 2] = replacementInfo.b;
+                imageData.data[cursor + 3] = 255;
+                pixelColors[pixelIndex] = replacementColor;
+            }
+
+            colorTotals.set(sourceColor, Math.max(0, colorTotal - component.length));
+            colorTotals.set(replacementColor, (colorTotals.get(replacementColor) || 0) + component.length);
+        }
+    }
+
     //将canvas颜色输出为最相近的调色板颜色
     function toPaletteColor(sourceCanvas, destCanvas) {
         let sourceCtx = sourceCanvas.getContext('2d'),
@@ -2230,6 +2408,10 @@
             imageData.data[i + 1] = similarColor.g;
             imageData.data[i + 2] = similarColor.b;
             imageData.data[i + 3] = 255;//处理后一律变成不透明色
+        }
+
+        if (enableSparseBlockCleanup) {
+            reduceSparseColorBlocks(imageData, sourceCanvas.width, sourceCanvas.height);
         }
 
         //保存换色后的原图
@@ -2488,13 +2670,13 @@
             if (e.ctrlKey || e.metaKey) {
                 $(this).toggleClass('selected');
                 if ($(this).hasClass('selected')) {
-                    filterColors.add(colorKey);
+                    filterColors.add(color);
                 } else {
-                    filterColors.delete(colorKey);
+                    filterColors.delete(color);
                 }
             } else {
                 // 如果没有按住 Ctrl/Command 键，且点击的是已选中的颜色，则清除所有选择
-                if ($(this).hasClass('selected') && filterColors.size === 1) {
+                if ($(this).hasClass('selected') && filterColors.size === 1 && filterColors.has(color)) {
                     $('.color-sum-block').removeClass('selected');
                     filterColors.clear();
                 } else {
@@ -2502,7 +2684,7 @@
                     $('.color-sum-block').removeClass('selected');
                     $(this).addClass('selected');
                     filterColors.clear();
-                    filterColors.add(colorKey);
+                    filterColors.add(color);
                 }
             }
             
@@ -2518,7 +2700,7 @@
         $('#selectAllColors').on('click', function() {
             $('.color-sum-block').addClass('selected');
             filterColors.clear();
-            colorSumSorted.forEach((count, color) => {
+            sortColorSum(colorSum, 'count').forEach((count, color) => {
                 if (color !== 'Err') {
                     filterColors.add(color);
                 }
@@ -3915,10 +4097,7 @@
 
     // 修改绑定套盒筛选事件的函数
     function bindColorSumEvents() {
-        // 原有的事件绑定...
-        
-        // 修改套盒筛选事件
-        $('.boxset-filter').on('change', function() {
+        $('.boxset-filter').off('change').on('change', function() {
             let sortedColors = sortColorSum(colorSum, 'boxset');
             showLoadingMask(() => {
                 if (!currentSliceImage) {
@@ -3929,13 +4108,12 @@
                 updateColorSumDisplay(sortedColors);
             });
         });
-        
-        // 修改排序方式选择事件
-    $('.dropdown-item[data-sort]').on('click', function(e) {
-        e.preventDefault();
-        $('.dropdown-item[data-sort]').removeClass('active');
-        $(this).addClass('active');
-        currentSortMethod = $(this).data('sort');
+
+        $('.dropdown-item[data-sort]').off('click').on('click', function(e) {
+            e.preventDefault();
+            $('.dropdown-item[data-sort]').removeClass('active');
+            $(this).addClass('active');
+            currentSortMethod = $(this).data('sort');
             
             let sortedColors = sortColorSum(colorSum, currentSortMethod);
             showLoadingMask(() => {
@@ -3946,6 +4124,55 @@
                 }
                 updateColorSumDisplay(sortedColors);
             });
+        });
+
+        $('.color-sum-block').off('click').on('click', function(e) {
+            e.preventDefault();
+            const rawColor = String($(this).data('color'));
+            const color = rawColor.startsWith('color_') ? rawColor.substring(6) : rawColor;
+
+            if (e.ctrlKey || e.metaKey) {
+                $(this).toggleClass('selected');
+                if ($(this).hasClass('selected')) {
+                    filterColors.add(color);
+                } else {
+                    filterColors.delete(color);
+                }
+            } else {
+                if ($(this).hasClass('selected') && filterColors.size === 1 && filterColors.has(color)) {
+                    $('.color-sum-block').removeClass('selected');
+                    filterColors.clear();
+                } else {
+                    $('.color-sum-block').removeClass('selected');
+                    $(this).addClass('selected');
+                    filterColors.clear();
+                    filterColors.add(color);
+                }
+            }
+
+            if (!currentSliceImage) {
+                showFullImageView(true);
+            } else {
+                showImageView(sliceImages[currentSliceImage.y][currentSliceImage.x], pieceSize, pieceSize, true);
+            }
+        });
+
+        $('#selectAllColors').off('click').on('click', function() {
+            $('.color-sum-block').addClass('selected');
+            filterColors.clear();
+            const flatColorSum = sortColorSum(colorSum, 'count');
+            flatColorSum.forEach((count, color) => {
+                if (color !== 'Err') {
+                    filterColors.add(color);
+                }
+            });
+            refreshImage();
+        });
+
+        $('#clearColorFilter').off('click').on('click', function() {
+            $('.color-sum-block').removeClass('selected');
+            filterColors.clear();
+            refreshImage();
         });
     }
 </script>
