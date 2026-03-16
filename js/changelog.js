@@ -1,9 +1,24 @@
 class ChangelogManager {
     constructor() {
-        this.currentVersion = '1.2.0';
+        this.currentVersion = '1.3.0';
         this.lastShownDate = localStorage.getItem('lastShownChangelogDate');
         // 直接在代码中存储更新日志
         this.changelogs = {
+            '1.3.0': `# 版本 1.3.0 (2026-03-16)
+
+## 新增功能
+- 新增“少量色块自动合并”算法，用于处理数量很少的杂色点
+- 新增“少量色块自动合并”开关，可按需启用/关闭
+- 新增开关状态本地记忆，刷新后保持上次设置
+
+## 问题修复
+- 修复颜色聚焦条在重绘后无法继续聚焦的问题
+- 修复颜色筛选键值不一致导致的聚焦异常
+
+## 交互优化
+- 优化聚焦条相关事件绑定，避免重复绑定造成的行为异常
+- 优化聚焦状态切换逻辑，单选/多选行为更稳定`,
+
             '1.2.0': `# 版本 1.2.0 (2025-01-16)
 
 ## 功能优化
